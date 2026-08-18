@@ -1,5 +1,13 @@
 ![Conan Exiles Enhanced](.github/imagens/conan-header.jpg)
 
+<p align="center">
+  <a href="README.md"><img src=".github/imagens/bandeiras/br.png" alt="Portugues" height="13">&nbsp;<b>Portugu&ecirc;s</b></a>
+  &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+  <a href="doc/README.en.md"><img src=".github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
+  &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+  <a href="doc/README.es.md"><img src=".github/imagens/bandeiras/es.png" alt="Espanol" height="13">&nbsp;Espa&ntilde;ol</a>
+</p>
+
 # Conan-Api — plugins no seu servidor de Conan Exiles
 
 O servidor dedicado do Conan Exiles não tem sistema de plugins. Não existe uma
@@ -189,3 +197,11 @@ a Inflexion Games.
 
 Esta API é trabalho independente, feito por engenharia reversa do servidor
 dedicado, sem SDK oficial e sem símbolos de depuração.
+
+<p align="center">
+  <a href="README.md"><img src=".github/imagens/bandeiras/br.png" alt="Portugues" height="13">&nbsp;<b>Portugu&ecirc;s</b></a>
+  &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+  <a href="doc/README.en.md"><img src=".github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
+  &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+  <a href="doc/README.es.md"><img src=".github/imagens/bandeiras/es.png" alt="Espanol" height="13">&nbsp;Espa&ntilde;ol</a>
+</p>
