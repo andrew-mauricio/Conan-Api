@@ -170,6 +170,34 @@ to the game update.
 Prefer the server that will not come up with plugins over the server that comes
 up lying. When that happens, wait for an updated version here.
 
+### What about the plugins you installed?
+
+Most keep working. A plugin talks to the API through a function table, and that
+table does not change shape when the game updates — what gets rebuilt is the
+API.
+
+The exception is a plugin that baked **game addresses** into its own binary.
+Those start reading the wrong place after a patch, and the worst part is that
+nothing errors out: they run, just with wrong data.
+
+That is why the author can declare it in their `PluginInfo.json`:
+
+```json
+{ "BuildDoJogo": 24784646, "UsaOffsetsCrus": true }
+```
+
+When they do, and the build changes, **the loader refuses the plugin** and
+writes the reason in the log:
+
+```
+[x] SomeonesShop — feito para a build 24383534 do jogo; esta e' a 24784646.
+    Ele usa offset cru: carregar aqui faria ele ler memoria errada SEM erro
+    nenhum. Peca a versao nova ao autor.
+```
+
+If a plugin disappears from your list after an update, look for that line before
+anything else: it says exactly what happened and what to ask the author for.
+
 ---
 
 ## Common problems
