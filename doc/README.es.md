@@ -171,6 +171,34 @@ ligaría el problema con la actualización del juego.
 Prefiere el servidor que no arranca con plugins al servidor que arranca
 mintiendo. Cuando eso pase, espera aquí una versión actualizada.
 
+### ¿Y los plugins que instalaste?
+
+La mayoría sigue valiendo. Un plugin habla con la API por una tabla de
+funciones, y esa tabla no cambia de forma cuando el juego se actualiza — lo que
+se rehace es la API.
+
+La excepción son los plugins que grabaron **direcciones del juego** dentro de su
+propio binario. Esos pasan a leer el sitio equivocado tras un parche, y lo peor
+es que no da error: funcionan, solo que con datos equivocados.
+
+Por eso el autor puede declararlo en su `PluginInfo.json`:
+
+```json
+{ "BuildDoJogo": 24784646, "UsaOffsetsCrus": true }
+```
+
+Cuando lo declara, y la build cambia, **el cargador rechaza el plugin** y
+escribe el motivo en el log:
+
+```
+[x] TiendaDeAlguien — feito para a build 24383534 do jogo; esta e' a 24784646.
+    Ele usa offset cru: carregar aqui faria ele ler memoria errada SEM erro
+    nenhum. Peca a versao nova ao autor.
+```
+
+Si un plugin desaparece de tu lista tras una actualización, busca esa línea
+antes que nada: dice exactamente qué pasó y qué pedirle al autor.
+
 ---
 
 ## Problemas comunes
