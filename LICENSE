@@ -2,23 +2,63 @@ Conan-Api
 
 Copyright (c) 2026 andrew-mauricio
 
-PERMITIDO
-  Escrever plugins que usem esta API, inclusive plugins comerciais, sem pagar
-  nada e sem pedir autorização.
-  Copiar, alterar e redistribuir os exemplos deste SDK como base dos seus
+
+O QUE VOCÊ PODE FAZER
+
+  Escrever plugins que usem esta API, e fazer com eles o que quiser —
+  inclusive VENDER. Plugin é seu; a licença dele é escolha sua, e você não
+  precisa pedir autorização, pagar nada nem dividir nada.
+
+  Rodar esta API em quantos servidores quiser, inclusive em servidor que
+  cobra dos jogadores.
+
+  Baixar esta API pelos canais oficiais: a página de Releases deste
+  repositório.
+
+  Divulgar e indexar o LINK deste repositório em qualquer lugar — site,
+  fórum, vídeo, marketplace, lista de recursos. O link é livre.
+
+  Copiar, alterar e redistribuir os EXEMPLOS deste SDK como base dos seus
   plugins.
+
   Estudar os headers.
 
-NÃO PERMITIDO
-  Usar este material para criar outra API de plugins para Conan Exiles, derivada
-  ou não.
+
+O QUE VOCÊ NÃO PODE FAZER
+
+  Usar esta API comercialmente. Ela não pode ser vendida, licenciada,
+  alugada, oferecida como parte de um serviço pago, nem incluída em nenhum
+  pacote comercial.
+
+  Re-hospedar os arquivos. Não espelhe o download em outro site, não
+  redistribua o .tar.gz, não inclua os binários ou headers em outro pacote,
+  modpack ou instalador. Quem quiser a API pega no repositório oficial —
+  divulgue o link, não o arquivo.
+
+  Usar este material para criar outra API de plugins para Conan Exiles,
+  derivada ou não.
+
   Redistribuir este SDK como se fosse seu, ou como parte de outro SDK.
 
+
+POR QUE ESSA DIVISÃO
+
+  A API é a fundação: é nela que está como as coisas funcionam por dentro, e
+  ela fica com quem a mantém. Isso existe para que haja UMA fundação, com um
+  caminho de atualização quando o jogo muda, em vez de cinco cópias
+  divergentes que ninguém consegue acompanhar.
+
+  O que você constrói em cima é outra história, e é sua. Vender plugin é
+  legítimo e esperado — não há nada aqui que atrapalhe isso.
+
+
 SEM GARANTIA
-  Este software é fornecido "como está", sem garantia de qualquer tipo. Ele roda
-  dentro do processo de um servidor de jogo e pode derrubá-lo. Os autores não
-  respondem por perda de dados, tempo fora do ar ou qualquer dano decorrente do
-  uso.
+
+  Este software é fornecido "como está", sem garantia de qualquer tipo. Ele
+  roda dentro do processo de um servidor de jogo e pode derrubá-lo. Os
+  autores não respondem por perda de dados, tempo fora do ar ou qualquer dano
+  decorrente do uso.
+
 
 Conan Exiles é marca e propriedade da Funcom. Este projeto é independente e não
 possui vínculo, patrocínio ou aprovação da Funcom ou da Inflexion Games.
