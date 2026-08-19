@@ -36,6 +36,7 @@ set -u
 
 CAMINHOS_PROTEGIDOS="
 README.md
+CLAUDE.md
 LICENSE
 .gitignore
 doc/README.en.md
