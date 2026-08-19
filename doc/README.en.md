@@ -13,38 +13,65 @@
 # Conan-Api — plugins on your Conan Exiles server
 
 The Conan Exiles dedicated server has no plugin system. There is no folder where
-you drop a file and get a new feature. If you want a `/kit`, a VIP system or a
-teleport, the game's answer is that this does not exist.
+you drop a file and get a new feature. If you want a `!kit`, a VIP system or a
+teleport, the game's answer is simply that those do not exist.
 
-This API fixes that. You copy two things into the server folder, and from then
-on installing a plugin is **dragging a folder**.
+**This API fills that gap.** You copy two items into the server folder, once.
+From then on, installing a plugin means dragging a folder.
 
 ```
 Conan-Api/
    Plugins/
-      Permission/            <- ships with it, handles VIP and permissions
-      PluginYouDownloaded/   <- you dragged this folder here
+      Permission/            <- ships with it: VIP and permissions
+      SomeonesShop/          <- you dragged this one here
+      SomeonesTeleport/      <- and this one
 ```
 
-That is all. There is no configuration file to edit, no list to fill in, no
-command to run. The folder being there is the installation.
+No config file to edit. No list to fill in. No command to run. **The folder being
+there is the installation.** Deleting the folder is the uninstall.
 
 ---
 
-## Before anything else: this runs inside your server
+## What you can have on your server
+
+The API does nothing on its own — it opens the door for other people to write
+things. What is possible today, and proven working:
+
+| what a plugin does | how the player uses it |
+|---|---|
+| **chat commands** | they type `!kit`, `!online`, `!shop` and the plugin answers |
+| **on-screen message** | it appears over their screen, never touching chat |
+| **broadcast** | one line that reaches everyone connected at the same time |
+| **react to events** | someone joined, died, harvested wood, killed an NPC |
+| **VIP and permissions** | who can do what, with groups, stored in a database |
+| **read and change the world** | a player's position, an item in an inventory, an object's state |
+
+A shop that sells items through chat, a teleport with saved points, custom
+welcome messages, a daily kit for VIPs only, an automatic warning before restart
+— all of that is written **on top of** this API, by anyone who wants to.
+
+What exists ready today is **Permission**, which ships in the package. The rest
+will come from the community, and that is what the
+[SDK](../../../Conan-Api-SDK) is for.
+
+---
+
+## Before you install anything: read this
 
 A plugin is a DLL that runs **inside the server process**, with the same powers
 it has. That is not a limitation of this API — it is what "native plugin" means
-in any game. But it has to be said before you install anything, and in large
-letters:
+in any game. But you need to know it first, in large print:
 
-**An installed plugin can** read and change anything in the server's memory,
-read your players' identity data, write any file the server can reach, open a
-network connection, and bring the server down.
+**An installed plugin can** read and change anything in the server's memory, see
+your players' identity data, write any file the server can reach, open network
+connections, and crash the server.
 
-**The API contains** a plugin failing to load (the server comes up without it),
-an exception inside a hook in most cases, and a conflict between two plugins.
-**The API does not contain** a malicious plugin: there is no sandbox, and there
+**The API contains** a plugin failing at load (the server comes up without it),
+an error inside a hook in most cases, an error in work the plugin scheduled for
+later (it goes into quarantine and the server carries on), and conflicts between
+two plugins.
+
+**The API does not contain** a malicious plugin. There is no sandbox, and there
 will not be one.
 
 Treat a plugin the way you would treat any program you install on your server:
@@ -52,9 +79,9 @@ from someone you trust, preferably with the source in plain sight.
 
 ---
 
-## Install — five minutes
+## Install — five minutes, once
 
-Download the package from [Releases](../../../releases). You get two things:
+Download the package from [Releases](../../releases). Two items come in it:
 
 ```
 winmm.dll      the loader. Without it, nothing happens.
@@ -66,109 +93,169 @@ Conan-Api/     the folder with everything inside
 **2.** Go to the executable's folder:
 `<server>\ConanSandbox\Binaries\Win64\`
 
-**3.** Rename the `winmm.dll` **that is already there** (the Windows one) to
+**3.** Rename the `winmm.dll` **already there** (Windows' own) to
 `winmm_orig.dll`.
 
-> If a `winmm_orig.dll` already exists there, **stop**: you have installed
-> before. Renaming again makes the loader point at itself, and the server dies
-> in silence — no log, no error, it just does not come up. Delete the new
-> `winmm.dll` and start over from this step.
+> If a `winmm_orig.dll` already exists, **stop**: you have installed before.
+> Renaming again makes the loader point at itself, and the server dies silently
+> — no log, no error, it just does not come up. Delete the new `winmm.dll` and
+> start again from this step.
 
-**4.** Copy the `winmm.dll` (ours) and the `Conan-Api` folder into that same
-folder.
+**4.** Copy our `winmm.dll` and the `Conan-Api` folder into that same folder.
 
-**5.** Start the server and open `Conan-Api\Logs\ConanLoader.log`. It should
-look like this:
+**5.** Start the server and open `Conan-Api\Logs\ConanLoader.log`.
+
+If that file does not exist, the loader never got in — go back to step 3.
+
+### Why rename a Windows DLL?
+
+Because the Conan server has nowhere to plug a plugin into. It does not look for
+extensions, does not read a module folder, has no entry point at all.
+
+What it does, like every Windows program, is load the system libraries at
+startup — and `winmm.dll` is one of them. That is how we get in: our DLL has the
+name it looks for, and once loaded it **forwards every call** to the original
+you renamed. The game loses nothing; we gain a place to work from.
+
+That is why step 3 matters so much. If the original is not sitting there as
+`winmm_orig.dll`, the calls have nowhere to go.
+
+---
+
+## How loading works, in plain words
+
+When the server starts, three things happen in order — and the order is the
+important part:
+
+**1. We get in, but touch nothing.** `winmm.dll` is loaded along with the
+server, forwards the system calls and steps aside. The game starts up normally.
+
+**2. We check the plugins while the world loads.** In those first seconds the
+API opens every DLL in `Plugins/`, reads each one's card, checks dependencies
+and versions. If a plugin is broken, **you find out here** — at startup, not
+half an hour later.
+
+**3. We switch the plugins on when the world exists.** And this step waits on
+purpose. A plugin that looks for players before the world has loaded finds a
+half-built world and concludes the wrong thing. It happened here: a plugin came
+up too early and froze the server at 4.3 GB instead of the usual 8.7.
+
+But the wait is not a timer — it is a **question to the game**. As soon as the
+`GameMode` exists (the same condition that makes the server print
+`Match State ... InProgress`), the plugins come in. This used to be a fixed
+delay, and the measured result here was **12 minutes** between the world being
+ready and the first plugin answering. Today it is **five seconds**.
+
+```mermaid
+flowchart TD
+    A[Server starts] --> B[winmm.dll gets in and forwards the calls]
+    B --> C{Is the game build<br/>the expected one?}
+    C -->|no| D[STOPS and writes why.<br/>No plugin loads.]
+    C -->|yes| E[Checks the plugin cards<br/>while the world loads]
+    E --> F{Any missing<br/>dependency?}
+    F -->|yes| G[REFUSES and says which]
+    F -->|no| H[Waits for the GameMode to exist]
+    H --> I[Switches plugins on, one by one,<br/>containing failures]
+```
+
+### What you should see in the log
 
 ```
 == ConanLoader iniciado ==
 [winmm] encaminhadores prontos: 189 apontam para a winmm_orig, 0 ficaram ausentes.
-reflexao estavel: 1508584 objetos vivos (nao cresceu alem de ~2% por 120 s).
-1 pasta(s) de plugin encontrada(s).
+[conferencia] 1 plugin(s) na pasta, 0 ja reprovado(s) na conferencia de arquivos.
+[fase1] 1 DLL(s) abertas e validadas, 0 reprovada(s).
+mundo montado: achei o GameMode vivo ("ConanGameMode") com 92103 objetos.
   [ok] Permission  "Permissões"  v1.0.0  api>=2
-       Permissões, grupos e VIP. Outros plugins consultam por ConanPermission.h.
 == 1 plugin(s) carregado(s), 0 com falha ==
 ```
 
-The loader writes that log in Portuguese, exactly as printed above — the line
-that matters is the last one, `1 plugin(s) carregado(s), 0 com falha`: one plugin
-loaded, none failed. If that file is never created, the loader did not get in —
-go back to step 3.
+Each plugin shows up with its name, version and verdict. An `[x]` instead of
+`[ok]` always comes with the reason written next to it.
 
 ---
 
-## How the loader decides what to load
+## Installing without taking the server down
 
-```mermaid
-flowchart TD
-    A[Server starts] --> B[winmm.dll enters the process]
-    B --> C{Is the game build<br/>the expected one?}
-    C -->|no| D[STOPS and writes down why.<br/>No plugin loads.]
-    C -->|yes| E[Waits for the world to finish loading]
-    E --> F[Reads each folder in Plugins/]
-    F --> G{Does the folder have<br/>PluginInfo.json?}
-    G -->|yes| H{Does it require an API<br/>newer than this one?}
-    H -->|yes| I[REFUSES and says which version is missing]
-    H -->|no| J[Joins the queue]
-    G -->|no| J
-    J --> K[Sorts by declared dependency]
-    K --> L[Loads them one by one, containing failures]
+To add a **new** plugin you no longer have to stop everything:
+
+```
+1. copy the plugin's folder into Conan-Api/Plugins/
+2. create an empty file named CARREGAR-NOVOS, next to the Logs/ folder
 ```
 
-**It waits for the world to load on purpose.** A plugin that looks for players
-before that finds a half-built world and concludes the wrong thing. It happened
-here: a plugin came up too early and froze the server at 4.3 GB instead of the
-usual 8.7.
+Within three seconds the loader picks it up, runs the same checks as always and
+switches the plugin on. The log says what happened:
+
+```
+[novos] [ok] SomeonesShop carregado SEM reiniciar o servidor.
+```
+
+**Replacing the version of a plugin that is already running still needs a
+restart.** That is not laziness on our part: a loaded plugin has hooks armed
+inside the game, and possibly tasks waiting to run. Unloading its code with any
+of those alive makes the server jump to an address that no longer exists — and
+the problem shows up **later**, far from the cause, somewhere that does not
+point back at the plugin. We would rather ask for a restart than ship that.
 
 ---
 
-## Install, uninstall, turn off
+## Day to day
 
-| what you want | what you do |
+| you want to | you do |
 |---|---|
 | install a plugin | drag its folder into `Conan-Api/Plugins/` |
+| install without stopping the server | copy the folder and create the `CARREGAR-NOVOS` file |
 | uninstall | delete the folder |
-| turn it off without losing its configuration | create an empty file named `DESLIGADO` inside its folder — that is the literal name the loader looks for, Portuguese for "off", all caps and no extension |
-| find out what happened | open `Conan-Api/Logs/ConanLoader.log` |
+| switch off without losing the config | create an empty file named `DESLIGADO` inside its folder |
+| understand what happened | open `Conan-Api/Logs/ConanLoader.log` |
 
-If a folder has more than one `.dll`, the loader uses the one named after the
-folder. If there are two and neither carries the right name, it **refuses and
-tells you which one to rename** — picking "the first one" would change with
-whatever order the filesystem happened to list them in, and one day it would
-load the wrong one with nobody seeing it.
+If a folder holds more than one `.dll`, the loader uses the one named after the
+folder. If there are two and none with the right name, it **refuses and says
+which one to rename** — picking "the first" would change with whatever order the
+filesystem felt like listing, and one day it would load the wrong one unnoticed.
 
 ---
 
 ## Permission — VIP and permissions
 
-It ships with the API and it is the plugin the others query. It keeps who has
-what in a local database, inside its own folder:
+It ships in the package, and it is the plugin the others ask when they need to
+know who can do what. It keeps everything in a database inside its own folder:
 
 ```
 Conan-Api/Plugins/Permission/
    ConanPermission.dll
-   config.json          <- the group names, and the database (see below)
-   permission.db        <- created on its own on the first run
+   config.json          <- group names, and where the database lives
+   permission.db        <- born on its own at first run
 ```
 
-**If you touch nothing**, it uses that local database and it works. If you want
-MySQL — because you run several servers and want VIP shared between them — that
-is one line in `config.json`.
+**If you change nothing, it works.** The local database is enough for most
+servers.
+
+If you run **several servers** and want VIP shared between them, it is one line
+in `config.json` pointing at a MySQL. Plugins that query Permission notice no
+difference — the question is the same either way.
+
+And if the database goes down, Permission answers "I do not know" instead of
+"no permission". Plugin authors decide what to do with that "I do not know";
+you, running the server, do not lose anyone's VIP over a network hiccup.
 
 ---
 
 ## When Conan updates
 
-The API will **refuse to load**, on purpose, and it will say so in the log.
+The API will **refuse to load**, on purpose, and will say so in the log.
 
-That is not a defect. It knows the game by memory addresses of this specific
-version; when Funcom updates, those addresses move. An API that kept working
-would be reading random memory and handing back plausible, false numbers — your
-VIP would vanish, permissions would invert, and nobody would connect the problem
-to the game update.
+That is not a defect, it is the most important part of the project. It knows the
+game by memory addresses from one specific version; when Funcom updates, those
+addresses move. An API that kept working would be reading random memory and
+handing back numbers that **look right and are not** — VIP vanishing,
+permissions inverted, and nobody connecting the problem to the game update.
 
 Prefer the server that will not come up with plugins over the server that comes
-up lying. When that happens, wait for an updated version here.
+up lying. When it happens, wait for an updated version here — and it tends to
+come quickly, because the API knows how to find its own way around the new
+executable.
 
 ### What about the plugins you installed?
 
@@ -180,14 +267,8 @@ The exception is a plugin that baked **game addresses** into its own binary.
 Those start reading the wrong place after a patch, and the worst part is that
 nothing errors out: they run, just with wrong data.
 
-That is why the author can declare it in their `PluginInfo.json`:
-
-```json
-{ "BuildDoJogo": 24784646, "UsaOffsetsCrus": true }
-```
-
-When they do, and the build changes, **the loader refuses the plugin** and
-writes the reason in the log:
+That is why the author can declare it in their plugin's card. When they do, and
+the build changes, **the loader refuses** and writes the reason:
 
 ```
 [x] SomeonesShop — feito para a build 24383534 do jogo; esta e' a 24784646.
@@ -200,18 +281,24 @@ anything else: it says exactly what happened and what to ask the author for.
 
 ---
 
-## Common problems
+## When something does not work
 
-**"I installed it and no plugin works"** — open `Conan-Api\Logs\ConanLoader.log`.
-If the file does not exist, the loader did not get in: the `winmm.dll` is not
-next to the executable, or you forgot to rename the original one.
+**"I installed it and no plugin works"** — open
+`Conan-Api\Logs\ConanLoader.log`. If the file does not even exist, the loader
+never got in: `winmm.dll` is not next to the executable, or you forgot to rename
+the original.
 
-**"The server does not come up and says nothing"** — almost always a
-`winmm_orig.dll` pointing at itself (an install on top of another one). See step 3.
+**"The server does not come up and says nothing"** — almost always
+`winmm_orig.dll` pointing at itself, from installing over a previous install.
+See step 3.
 
-**"One specific plugin does not load"** — the log gives the reason, with the
-folder name. It can be a missing DLL, a `PluginInfo.json` demanding a newer API,
-or a `DESLIGADO` file left behind inside it.
+**"One specific plugin will not load"** — the log gives the reason, with the
+folder name. Usually a missing DLL, a card asking for a newer API, or a
+`DESLIGADO` file left behind inside.
+
+**"I installed with CARREGAR-NOVOS and nothing happened"** — the file is deleted
+as soon as it is picked up. If it is still there after a few seconds, the loader
+is not running: check the startup log.
 
 ---
 
@@ -219,18 +306,19 @@ or a `DESLIGADO` file left behind inside it.
 
 ## Writing your own plugins
 
-That is another repository: **[Conan-Api-SDK](../../../../Conan-Api-SDK)**. It has
-the header, six examples with source code and the build guide. They are separate
-because whoever runs a server needs no compiler for anything, and whoever writes
-a plugin needs none of the server binaries.
+That is another repository: **[Conan-Api-SDK](../../../Conan-Api-SDK)**. The
+header, examples with source code and the build guide live there.
+
+They are separate on purpose: someone running a server needs no compiler at all,
+and someone writing a plugin needs none of the server binaries.
 
 ---
 
-## Credits and license
+## Credits and licence
 
 *Conan Exiles* belongs to **Funcom**. The images in this repository are official
 promotional material, from Steam. This project has no affiliation with Funcom or
-with Inflexion Games.
+Inflexion Games.
 
 This API is independent work, done by reverse engineering the dedicated server,
 with no official SDK and no debug symbols.
