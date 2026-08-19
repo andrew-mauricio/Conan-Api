@@ -1,6 +1,6 @@
 Conan-Api 2.5.0 — API de plugins para Conan Exiles Enhanced
 tabela da API: v6   (um plugin exige no maximo esta, via MinApiVersion)
-montado em: 19/08/2026 15:29:16 -03
+montado em: 19/08/2026 15:37:09 -03
 jogo alvo : Unreal Engine 5.6.1 (++exiles+release) build 24383534
 
 ATENÇÃO: os offsets desta API são desta build do jogo. Quando o Conan
@@ -18,8 +18,8 @@ provas do Docs/ESTADO.md foram colhidas: são um build NOVO da MESMA
 fonte. Quem garante o comportamento é a fonte e os portões, não a
 igualdade de bytes.
 
-  f3327075ba4fd3f9  Conan-Api/Plugins/Permission/ConanPermission.dll
-  e4ea2676aea98d5a  winmm.dll
+  43c24b8290260ede  Conan-Api/Plugins/Permission/ConanPermission.dll
+  24e91031ba796b70  winmm.dll
 
 ──────────────────────────────────────────────────────────────────
 VALIDADO RODANDO NO SERVIDOR — os bytes por trás das provas
