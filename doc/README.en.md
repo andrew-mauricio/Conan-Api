@@ -202,6 +202,28 @@ point back at the plugin. We would rather ask for a restart than ship that.
 
 ## Day to day
 
+### What has to be inside a plugin's folder
+
+Only the `.dll`. The rest is up to whoever wrote it:
+
+```
+Conan-Api/Plugins/SomeonesShop/
+   SomeonesShop.dll     <- the only required item
+   PluginInfo.json      <- if present, the log shows name and version
+   config.json          <- if present, it belongs to the plugin: it reads it, not the API
+```
+
+If the author did not include a `PluginInfo.json`, the plugin still loads — the
+log shows `[sem PluginInfo.json]` and uses the folder name. What you lose is
+knowing its version from the log, and the protection that refuses the plugin on
+an old API or on a different game build.
+
+**`config.json` belongs to the plugin, not to us.** The API never opens that
+file; it only tells the plugin where it lives. If you need to change something in
+it, the reference is the documentation of whoever wrote the plugin.
+
+---
+
 | you want to | you do |
 |---|---|
 | install a plugin | drag its folder into `Conan-Api/Plugins/` |
