@@ -1,6 +1,6 @@
-Conan-Api 2.4.0 — API de plugins para Conan Exiles Enhanced
-tabela da API: v5   (um plugin exige no maximo esta, via MinApiVersion)
-montado em: 19/08/2026 14:26:18 -03
+Conan-Api 2.5.0 — API de plugins para Conan Exiles Enhanced
+tabela da API: v6   (um plugin exige no maximo esta, via MinApiVersion)
+montado em: 19/08/2026 15:29:16 -03
 jogo alvo : Unreal Engine 5.6.1 (++exiles+release) build 24383534
 
 ATENÇÃO: os offsets desta API são desta build do jogo. Quando o Conan
@@ -18,13 +18,13 @@ provas do Docs/ESTADO.md foram colhidas: são um build NOVO da MESMA
 fonte. Quem garante o comportamento é a fonte e os portões, não a
 igualdade de bytes.
 
-  f818903852e9535c  Conan-Api/Plugins/Permission/ConanPermission.dll
-  66a92b23481746af  winmm.dll
+  f3327075ba4fd3f9  Conan-Api/Plugins/Permission/ConanPermission.dll
+  e4ea2676aea98d5a  winmm.dll
 
 ──────────────────────────────────────────────────────────────────
 VALIDADO RODANDO NO SERVIDOR — os bytes por trás das provas
 ──────────────────────────────────────────────────────────────────
-implantado em: 2026-08-19 09:55:12
+implantado em: 2026-08-19 15:03:04
 (o sha aqui DIFERE do de cima de propósito: build diferente, fonte
  igual — é o que prova que a diferença de bytes é só o build.)
-  26ac767e006c9cb9  winmm.dll
+  4a9cf9efcba9aa95  winmm.dll
