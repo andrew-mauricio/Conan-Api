@@ -1,0 +1,7 @@
+{
+  "FullName":      "Permissões",
+  "Description":   "Permissões, grupos e VIP. Outros plugins consultam por ConanPermission.h.",
+  "Version":       "1.0.0",
+  "MinApiVersion": 2,
+  "ResourceId":    -1
+}
