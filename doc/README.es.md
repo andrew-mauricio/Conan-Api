@@ -246,6 +246,8 @@ lo viera.
 
 ---
 
+![Las Tierras del Exilio](../.github/imagens/conan-2.jpg)
+
 ## El Permission — VIP y permisos
 
 Viene en el paquete, y es el plugin al que los demás preguntan cuando necesitan
