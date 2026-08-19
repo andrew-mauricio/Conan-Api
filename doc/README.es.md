@@ -208,6 +208,28 @@ entregar eso.
 
 ## El día a día
 
+### Qué tiene que haber dentro de la carpeta de un plugin
+
+Solo la `.dll`. El resto depende de quien lo escribió:
+
+```
+Conan-Api/Plugins/TiendaDeAlguien/
+   TiendaDeAlguien.dll  <- lo único obligatorio
+   PluginInfo.json      <- si existe, el log muestra nombre y versión
+   config.json          <- si existe, es del plugin: lo lee él, no la API
+```
+
+Si el autor no puso un `PluginInfo.json`, el plugin igual carga — el log muestra
+`[sem PluginInfo.json]` y usa el nombre de la carpeta. Lo que pierdes es saber su
+versión por el log, y la protección que rechaza el plugin en una API vieja o en
+una build del juego distinta.
+
+**El `config.json` es del plugin, no nuestro.** La API nunca abre ese archivo;
+solo le dice al plugin dónde vive. Si necesitas cambiar algo ahí, la referencia
+es la documentación de quien escribió el plugin.
+
+---
+
 | quieres | haces |
 |---|---|
 | instalar un plugin | arrastras su carpeta a `Conan-Api/Plugins/` |
