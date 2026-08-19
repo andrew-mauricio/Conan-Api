@@ -204,6 +204,28 @@ aponta para o plugin. Preferimos pedir um restart a entregar isso.
 
 ## O dia a dia
 
+### O que precisa ter dentro da pasta de um plugin
+
+Só a `.dll`. O resto depende de quem escreveu:
+
+```
+Conan-Api/Plugins/LojaDoFulano/
+   LojaDoFulano.dll     <- a única coisa obrigatória
+   PluginInfo.json      <- se existir, o log mostra nome e versão
+   config.json          <- se existir, é do plugin: quem lê é ele, não a API
+```
+
+Se o autor não pôs um `PluginInfo.json`, o plugin ainda carrega — o log mostra
+`[sem PluginInfo.json]` e usa o nome da pasta. O que você perde é saber a versão
+dele pelo log, e a proteção que recusa o plugin numa API velha ou numa build do
+jogo diferente.
+
+**O `config.json` é do plugin, não nosso.** A API nunca abre esse arquivo; ela só
+diz ao plugin onde ele fica. Se você precisa mudar alguma coisa nele, a
+referência é a documentação de quem escreveu o plugin.
+
+---
+
 | você quer | você faz |
 |---|---|
 | instalar um plugin | arrasta a pasta para `Conan-Api/Plugins/` |
