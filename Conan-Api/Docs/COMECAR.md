@@ -142,6 +142,198 @@ outro, e o banco de um não fica na pasta do vizinho. Dois plugins podem ter
 arquivos de mesmo nome sem se atrapalharem.
 
 
+## Guardar os VIPs num MySQL (opcional — quase ninguém precisa)
+
+O plugin `Permission` é quem anota **quem é VIP, quem é admin e quem pode o
+quê**. Por padrão ele anota isso num arquivo, ao lado dele mesmo
+(`permission.db`). Esse arquivo funciona sozinho: não precisa instalar nada, não
+precisa configurar nada, e é o certo para a enorme maioria dos servidores.
+
+Você só ganha alguma coisa trocando para MySQL em **dois** casos:
+
+| você tem | vale a pena? |
+|---|---|
+| um servidor só | **não.** Deixe como está. Você só ganha coisa para dar errado |
+| dois ou mais servidores, e quer o mesmo VIP valendo em todos | sim |
+| um site/painel que já lê seus jogadores de um MySQL | sim |
+
+> **Leu num fórum que "MySQL é melhor"?** Para um servidor só, não é. O arquivo
+> local é mais rápido (não passa por rede), não cai, não tem senha para errar e
+> não some quando o outro computador desliga. A vantagem do MySQL é **um lugar
+> só para vários servidores** — se você não tem vários, não há vantagem.
+
+### Antes de mexer: o que NÃO acontece
+
+O medo legítimo é "e se o banco cair, meu servidor trava e os jogadores caem?".
+
+Não acontece, e isso foi medido, não prometido: **quem fala com o MySQL é uma
+linha de trabalho separada, nunca a do jogo.** A bateria de testes maltrata o
+MySQL de três jeitos com o plugin no ar — mata a conexão de fora, corta a rede
+no meio de uma operação, e põe no lugar um banco que leva 2 segundos para
+responder cada consulta — e nos três o laço do jogo continua no mesmo ritmo. O
+que acontece é o `Permission` ficar
+**ausente** — como se ele não estivesse instalado — e cada plugin que dependia
+dele usa o padrão que ele mesmo escolheu. Ninguém desconecta, ninguém trava.
+
+E ele **tenta voltar sozinho**, esperando cada vez um pouco mais (5 s, 10 s,
+20 s… até 5 minutos), **relendo o `config.json` a cada tentativa**. É isso que
+faz você corrigir a senha errada no arquivo, salvar, e o plugin entrar sozinho —
+**sem reiniciar o servidor de jogo**, que custa 6 a 9 minutos com ninguém
+conseguindo entrar.
+
+### O que você precisa ter pronto
+
+Duas coisas — uma gaveta e um usuário — feitas **no MySQL**, não aqui. Se você
+não sabe fazer isso, quem cuida do seu MySQL sabe: mande o bloco abaixo para
+ele, trocando o nome do banco e a senha:
+
+```sql
+CREATE DATABASE IF NOT EXISTS conan_permission CHARACTER SET utf8mb4;
+CREATE USER IF NOT EXISTS 'conan'@'%' IDENTIFIED BY 'a-senha-que-voce-escolher';
+GRANT ALL ON conan_permission.* TO 'conan'@'%';
+FLUSH PRIVILEGES;
+```
+
+A primeira linha cria a **gaveta** onde os dados vão morar. A segunda cria o
+**usuário** que vai abrir essa gaveta. A terceira dá a ele a chave — **dessa
+gaveta só**. A quarta manda o MySQL passar a valer o que você acabou de fazer.
+As tabelas de dentro o plugin cria sozinho, na primeira vez que subir.
+
+> **Nessa ordem, e sem pular o `CREATE USER`.** Em MySQL antigo dava para
+> pular — o `GRANT` criava o usuário sozinho. **No MySQL 8 isso acabou**: o
+> `GRANT` sem o usuário existir responde
+> `ERROR 1410: You are not allowed to create a user with GRANT`. Conferido no
+> MySQL 8.4.11; o bloco acima foi rodado também no MySQL 5.7.44 e no
+> MariaDB 10.11, e passou nos três.
+
+**Não use o usuário `root`.** Ele abre o banco inteiro; o plugin só precisa de
+uma gaveta. Se alguém puser as mãos nesse servidor, a diferença entre as duas
+coisas é o tamanho do estrago.
+
+### Onde mexer
+
+Um arquivo só: `Conan-Api/Plugins/Permission/config.json`. As chaves já estão
+lá, vazias, esperando por você:
+
+```json
+  "Database": "sqlite",
+  "MysqlHost": "127.0.0.1",
+  "MysqlPort": 3306,
+  "MysqlUser": "",
+  "MysqlPass": "",
+  "MysqlDB": "",
+```
+
+Vira isto:
+
+```json
+  "Database": "mysql",
+  "MysqlHost": "127.0.0.1",
+  "MysqlPort": 3306,
+  "MysqlUser": "conan",
+  "MysqlPass": "a-senha-que-voce-escolher",
+  "MysqlDB": "conan_permission",
+```
+
+| chave | o que é |
+|---|---|
+| `Database` | `sqlite` (arquivo local, o padrão) ou `mysql`. Nada mais |
+| `MysqlHost` | onde o MySQL está. **Na mesma máquina? use `127.0.0.1`** |
+| `MysqlPort` | o número da porta. `3306` é o normal — só mude se te disseram outro |
+| `MysqlUser` | o usuário que você criou ali em cima |
+| `MysqlPass` | a senha dele |
+| `MysqlDB` | o nome da gaveta que você criou (`conan_permission` no exemplo) |
+
+Salve, reinicie o servidor **uma vez**, e olhe `Conan-Api/Logs/ConanApi.log`.
+Deu certo quando aparece isto:
+
+```
+[permission] banco: MySQL em 127.0.0.1:3306, banco 'conan_permission', usuario 'conan' (prazos: 5000 ms para conectar, 10000 ms por operacao)
+[permission] MySQL: pronto (8.4.11, utf8mb4, sem NO_BACKSLASH_ESCAPES)
+[permission] instantaneo #1: 4 grupo(s), 0 jogador(es), 2 no(s) no padrao
+```
+
+> **Por que `127.0.0.1` e não `localhost`?** São a mesma máquina, mas
+> `localhost` no Windows às vezes tenta primeiro um caminho que não existe e
+> demora alguns segundos antes de tentar o certo. `127.0.0.1` vai direto.
+
+### Três armadilhas que pegam todo mundo
+
+**1. Espaço no fim, vindo do copiar-e-colar.** Você seleciona a senha ou o
+endereço no site do provedor, o mouse pega um espaço junto, e você cola. O valor
+fica com cara de certo — **espaço não aparece na tela**. O plugin recusa e
+mostra o valor entre colchetes, para o espaço ficar visível:
+
+```
+"MysqlHost" termina com ESPACO. (...) Entre colchetes ele fica visivel:
+[127.0.0.1 ] tem 10 caracteres; o certo e [127.0.0.1], com 9.
+```
+
+Apague o espaço. (Na **senha** ele não recusa: senha com espaço pode ser senha
+de verdade.)
+
+**2. Aspas em volta do número da porta.** `"MysqlPort": "3306"` com aspas
+funciona igual a `3306` sem aspas — não se preocupe com isso. O que **não**
+funciona é escrever palavra no lugar do número; aí ele diz que aquilo é texto e
+que precisa do número.
+
+**3. `MySQL` com maiúscula.** `"mysql"`, `"MySQL"`, `"MYSQL"` — todos valem.
+Mas **`"mysqll"` com dois L não vale**, e o plugin **para** em vez de adivinhar.
+Isso é de propósito: se ele caísse no arquivo local calado, seus VIPs iriam para
+um lugar que você não está olhando, e você só descobriria semanas depois,
+procurando no MySQL e não achando.
+
+### Quando o log reclamar
+
+Toda mensagem de erro deste plugin diz **o que está errado** e **o que fazer**.
+Procure no `ConanApi.log` a linha que começa com `[permission]`, logo acima
+daquela moldura de `###`:
+
+| o log diz | o que houve | o que fazer |
+|---|---|---|
+| `recusou o login do usuario 'x'` | usuário ou senha errados | confira `MysqlUser` e `MysqlPass`. Confira espaço no fim |
+| `entrou no MySQL, mas nao conseguiu abrir o banco` | a gaveta não existe, ou o usuário não tem a chave dela | rode as duas linhas de SQL que **o próprio log escreve**, prontas para copiar |
+| `nao ha nada escutando na porta 3306` | o MySQL está parado, ou está em outra porta | ligue o MySQL, ou corrija `MysqlPort` |
+| `nao consegui resolver o endereco 'x'` | o nome não existe, ou está escrito errado | confira `MysqlHost`. Mesma máquina? use `127.0.0.1` |
+| `sem "MysqlUser"` / `sem "MysqlDB"` | você deixou a chave vazia | preencha. Ele não escolhe por você de propósito |
+| `nao e um numero de porta — isso e texto` | você escreveu palavra na porta | escreva o número: `"MysqlPort": 3306` |
+
+E um erro que aparece **no MySQL**, não no log do plugin, quando você está
+criando o usuário:
+
+| o MySQL diz | o que houve | o que fazer |
+|---|---|---|
+| `ERROR 1410: You are not allowed to create a user with GRANT` | você rodou o `GRANT` sem ter criado o usuário antes | rode o `CREATE USER` primeiro — é a segunda das quatro linhas ali em cima |
+| `ERROR 1044 / 1045` ao testar no cliente do MySQL | a senha ou o usuário não batem | refaça o `CREATE USER`, com aspas simples exatamente como no exemplo |
+
+**Nada disso derruba o servidor de jogo.** Em todos esses casos os jogadores
+continuam jogando; só o `Permission` fica ausente até você corrigir o arquivo.
+
+### Se o seu MySQL for 8.0 ou mais novo
+
+Nada a fazer na maioria dos casos — foi testado contra o **MySQL 8.4.11** e
+conectou sem configuração nenhuma. Existe um caso em que o MySQL exige um
+método de login que precisa de uma chave que ele mesmo não quer entregar sem
+conexão cifrada; se isso acontecer, **o log escreve a linha de SQL exata** que
+resolve. Copie, rode no MySQL, pronto — você não precisa entender o assunto.
+
+**Você não precisa instalar nada para o MySQL funcionar aqui.** Não há DLL para
+baixar, nem "conector" para instalar: o plugin fala com o MySQL por conta
+própria. Se alguém mandar você baixar um arquivo para isso, não é deste plugin.
+
+### Voltar atrás
+
+Troque `"Database"` de volta para `"sqlite"` e reinicie. Os dados que você já
+tinha no arquivo local **continuam lá**, intactos — trocar de banco não apaga o
+outro.
+
+O que **não** acontece sozinho é os dados irem de um para o outro: o que você
+gravou no MySQL fica no MySQL, o que estava no arquivo fica no arquivo. Não há
+importação automática, e é melhor assim — juntar dois cadastros de VIP
+adivinhando qual vale seria o tipo de ajuda que estraga.
+
+---
+
 ## Escrever um plugin? É outro download
 
 Este pacote é o do **servidor**: ele faz plugin rodar. Se você quer *escrever*

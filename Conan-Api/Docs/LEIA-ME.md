@@ -40,6 +40,22 @@ Conan-Api\
    VERSAO.txt    o sha256 de cada binário, para conferir o que você tem
 ```
 
+## VIP e permissões: onde ficam guardados
+
+O `Permission` já vem instalado e é ele que anota quem é VIP, quem é admin e
+quem pode o quê. Por padrão ele guarda isso **num arquivo ao lado dele mesmo**,
+que funciona sozinho e não precisa de configuração nenhuma. É o certo para quase
+todo servidor.
+
+Se você roda **vários servidores** e quer o mesmo VIP valendo em todos, dá para
+apontar o `Permission` para um **MySQL** — mexendo só no
+`Conan-Api\Plugins\Permission\config.json`, sem instalar nada e sem programar.
+As chaves já estão no arquivo, vazias. O passo a passo, com os erros comuns e o
+que fazer em cada um, está em `Conan-Api\Docs\COMECAR.md`, na seção
+**"Guardar os VIPs num MySQL"**.
+
+Se você tem um servidor só, não precisa disso e não ganha nada com ele.
+
 ## Quando algo não funciona
 
 `Conan-Api\Logs\ConanLoader.log` diz o que o carregador fez, em português, com o
