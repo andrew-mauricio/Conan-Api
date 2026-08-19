@@ -1,0 +1,185 @@
+{
+  "_leia_isto": [
+    "Este arquivo manda na FORMA: quais grupos existem, o que cada um pode, quem herda de quem.",
+    "Ele NAO manda na POSSE: quem e VIP mora so no banco (permission.db) e NADA aqui apaga isso.",
+    "E por isso que voce pode reescrever este arquivo a vontade sem perder um VIP.",
+    "",
+    "COMO RENOMEAR UM GRUPO SEM PERDER OS MEMBROS",
+    "  troque a 'chave' e ponha a antiga em 'era'. Exemplo: para renomear vip -> patrono,",
+    "  escreva  { \"chave\": \"patrono\", \"era\": \"vip\", ... }  e recarregue.",
+    "  Os membros continuam la, porque o vinculo aponta para um id interno imutavel,",
+    "  nunca para o nome. E a chave antiga fica valendo como APELIDO — o plugin de VIP",
+    "  que alguem compilou perguntando por 'vip' continua acertando.",
+    "  Depois que recarregar, TIRE o 'era' (ele ja fez o trabalho).",
+    "",
+    "TRES NOMES, TRES PAPEIS",
+    "  chave  = o nome tecnico. Plugins e comandos usam este. Renomeavel com 'era'.",
+    "  nome   = o rotulo que o jogador ve no chat. Livre, muda quando quiser.",
+    "  (o id interno nao aparece aqui de proposito: e ele que segura os dados)",
+    "",
+    "PERMISSOES",
+    "  \"vip.kit.diario\"  um no exato",
+    "  \"vip.*\"           todo o galho vip",
+    "  \"*\"               tudo",
+    "  \"-vip.teleporte\"  NEGA. O mais especifico sempre vence: com vip.* e -vip.teleporte",
+    "                    juntos, o jogador tem o galho todo MENOS o teleporte.",
+    "                    Negacao especifica vence ate o \"*\" do admin."
+  ],
+
+  "versao": 1,
+
+  "_onde_ficam_os_dados": [
+    "Por padrao o Permission guarda tudo num arquivo SQLite ao lado do plugin",
+    "(permission.db). Nao precisa instalar nada, nao precisa configurar nada, e",
+    "e o que 99% dos servidores devem usar. As chaves abaixo so existem para",
+    "quem QUER apontar para um MySQL — tipicamente quem roda varios servidores",
+    "e quer o VIP valendo em todos, ou quem ja tem um painel web no MySQL.",
+    "",
+    "SE VOCE NAO SABE O QUE E ISSO, NAO MEXA. O padrao ja esta certo.",
+    "",
+    "\"Database\"  \"sqlite\" (padrao) ou \"mysql\". Qualquer outro valor e RECUSADO",
+    "             e o plugin nao sobe — de proposito. Se eu caisse no sqlite",
+    "             calado depois de voce escrever \"mysqll\", seus dados iriam para",
+    "             um arquivo local e voce so descobriria procurando no MySQL e",
+    "             nao achando. (\"mariadb\" tambem vale, e o mesmo caminho.)",
+    "",
+    "COM \"mysql\", estas sao obrigatorias/uteis:",
+    "  MysqlHost   endereco do servidor. Se o MySQL esta NA MESMA MAQUINA, use",
+    "              127.0.0.1 — e nao \"localhost\", que em Windows as vezes",
+    "              resolve para IPv6 e demora.",
+    "  MysqlPort   3306 e o padrao do MySQL.",
+    "  MysqlUser   usuario. NAO use o root: crie um usuario so para isto.",
+    "  MysqlPass   senha.",
+    "  MysqlDB     nome do banco. NAO TEM PADRAO de proposito: onde gravar nao",
+    "              e coisa para o plugin adivinhar.",
+    "",
+    "  O banco precisa existir e o usuario precisa poder criar tabela nele:",
+    "     CREATE DATABASE IF NOT EXISTS conan_permission CHARACTER SET utf8mb4;",
+    "     GRANT ALL ON conan_permission.* TO 'seu_usuario'@'%';",
+    "     FLUSH PRIVILEGES;",
+    "  As tabelas o plugin cria sozinho na primeira vez.",
+    "",
+    "  MysqlTempoConectarMs   quanto esperar pela conexao (padrao 5000).",
+    "  MysqlTempoOperarMs     quanto esperar por uma resposta (padrao 10000).",
+    "     Aumente so se o seu MySQL for lento de verdade. Estes prazos existem",
+    "     para um banco que nao responde NUNCA travar o servidor de jogo.",
+    "",
+    "SEM TLS: a senha nunca vai em claro no fio, mas as consultas sim. Use isto",
+    "com MySQL na mesma maquina ou em rede privada. NAO exponha o MySQL na",
+    "internet so para este plugin.",
+    "",
+    "\"DbPathOverride\"  caminho alternativo do arquivo .db (so vale no sqlite).",
+    "                  Vazio = ao lado do plugin, que e o certo para quase todo",
+    "                  mundo. Se voce mudar, lembre que apagar o .db exige",
+    "                  apagar tambem o .db-wal e o .db-shm, senao o dado",
+    "                  RESSUSCITA na proxima abertura."
+  ],
+
+  "Database": "sqlite",
+  "MysqlHost": "127.0.0.1",
+  "MysqlPort": 3306,
+  "MysqlUser": "conan",
+  "MysqlPass": "",
+  "MysqlDB": "conan_permission",
+  "DbPathOverride": "",
+
+  "identidade": "masteraccount",
+  "_identidade": [
+    "auto | masteraccount | plataforma",
+    "",
+    "CONFIRMADO COM JOGADOR REAL em 17/08/2026, e por isso deixou de ser 'auto'.",
+    "",
+    "A chave e ConanPlayerState.MasterAccountId (StrProperty, offset 0x3C0).",
+    "Foi lida da memoria do servidor com um jogador conectado, e o nome do campo",
+    "veio da REFLEXAO, nao de suposicao:",
+    "",
+    "   +0x0350  PlayerState.SavedNetworkAddress   = \"200.34.238.251\"",
+    "   +0x0398  PlayerState.PlayerNamePrivate     = \"Indio#76973\"",
+    "   +0x03C0  ConanPlayerState.MasterAccountId  = \"A-4QR7CRS0F\"   <- a chave",
+    "",
+    "Por que esta e nao as outras:",
+    "  · SavedNetworkAddress e o IP. Muda de conexao para conexao.",
+    "  · PlayerNamePrivate e o nome de exibicao da conta. O jogador pode trocar.",
+    "  · MasterAccountId apareceu em TRES lugares ao mesmo tempo - no PlayerState",
+    "    e duas vezes no PlayerController. Valor que se repete em objetos",
+    "    diferentes e identidade canonica, nao cache local.",
+    "",
+    "O QUE AINDA NAO FOI PROVADO: que ela sobrevive a reconexao. E o ID da conta",
+    "mestre por definicao, mas 'por definicao' nao e medicao. Antes de vender VIP,",
+    "confira no log que o mesmo jogador traz o mesmo valor depois de sair e voltar."
+  ],
+
+  "_fronteira": [
+    "NAO HA FRONTEIRA ENTRE PLUGINS. Todo plugin roda dentro do processo do jogo,",
+    "com o mesmo usuario e o mesmo espaco de memoria deste Permission.",
+    "Consequencia: qualquer plugin instalado pode abrir este mesmo permission.db",
+    "com o proprio SQLite e dar VIP a si mesmo, apagar VIP de terceiros ou ler o",
+    "diario — sem passar por este codigo, e sem que este codigo consiga impedir.",
+    "A ABI e a porta pretendida, nao uma tranca: evita QUEDA por versao",
+    "incompativel, nao ADULTERACAO por quem quer adulterar.",
+    "A unica medida real e o DLL nao exportar as funcoes sqlite3_* (compilar.sh);",
+    "isso so impede pegar o NOSSO handle por GetProcAddress, nao um plugin que",
+    "traga o proprio SQLite. Isolamento de verdade exigiria rodar plugin em outro",
+    "processo — mudanca da API inteira, nao deste plugin. Ate la: instalar um",
+    "plugin e dar a ele acesso total ao servidor. Instale so o que voce audita.",
+    "O porque tecnico completo esta no topo de Permission.cpp."
+  ],
+
+  "_privacidade": [
+    "A identidade do jogador (MasterAccountId da conta Funcom, id de plataforma,",
+    "nome) e legivel por QUALQUER plugin, pela mesma ausencia de fronteira acima.",
+    "Alem disso, as 20 PRIMEIRAS resolucoes de identidade vao para o ConanApi.log",
+    "em texto claro — diagnostico proposital para voce escolher a chave com dado",
+    "real, mas e identificador PERSISTENTE da pessoa gravado em disco. O log fica",
+    "na sua maquina, sob seu controle; se o diagnostico nao for preciso, apagar",
+    "ou rotacionar o ConanApi.log limpa o historico. Quem responde por LGPD/GDPR",
+    "no servidor precisa saber que esses dados existem ali."
+  ],
+
+  "grupos": [
+    {
+      "chave": "default",
+      "nome": "Exilado",
+      "prioridade": 0,
+      "padrao": true,
+      "permissoes": [
+        "basico.usar",
+        "basico.mapa"
+      ]
+    },
+    {
+      "chave": "vip",
+      "nome": "VIP",
+      "prioridade": 100,
+      "herda": ["default"],
+      "permissoes": [
+        "vip.*",
+        "-vip.teleporte"
+      ]
+    },
+    {
+      "chave": "vipplus",
+      "nome": "VIP Plus",
+      "prioridade": 200,
+      "herda": ["vip"],
+      "permissoes": [
+        "vip.teleporte",
+        "vipplus.*"
+      ]
+    },
+    {
+      "chave": "admin",
+      "nome": "Administrador",
+      "prioridade": 1000,
+      "herda": ["vipplus"],
+      "permissoes": [
+        "*"
+      ]
+    }
+  ],
+
+  "apelidos_de_permissao": {
+    "_leia_isto": "renomeou um no de permissao? mapeie o velho para o novo e nada quebra",
+    "vip.kitdiario": "vip.kit.diario"
+  }
+}

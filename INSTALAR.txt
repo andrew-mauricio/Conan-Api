@@ -1,0 +1,61 @@
+COMO INSTALAR — leia estas 20 linhas antes de copiar qualquer coisa
+====================================================================
+
+Você tem dois itens aqui:
+
+    winmm.dll     <- o carregador. SEM ELE NADA FUNCIONA.
+    Conan-Api/    <- a API, os plugins, o SDK e a documentação
+
+PASSO 1 — pare o servidor.
+
+PASSO 2 — vá até a pasta do executável do servidor:
+    <servidor>/ConanSandbox/Binaries/Win64/
+
+PASSO 3 — renomeie a winmm.dll QUE JÁ ESTÁ LÁ (a do sistema) para:
+    winmm_orig.dll
+
+    Se já existir um winmm_orig.dll ali, PARE: você já instalou antes.
+    Renomear de novo encadeia o carregador nele mesmo, e o servidor morre
+    em silêncio (sem log, sem erro, exit 1). Apague só a winmm.dll nova
+    e recomece deste passo.
+
+PASSO 4 — copie para essa mesma pasta:
+    winmm.dll     (o carregador, o que veio aqui)
+    Conan-Api/    (a pasta inteira)
+
+PASSO 5 — suba o servidor e confira:
+    Conan-Api/Logs/ConanLoader.log   <- diz se o carregador entrou
+    Conan-Api/Logs/ConanApi.log      <- diz quais plugins carregaram
+
+Se os logs não forem criados, o carregador não entrou: reveja o passo 3.
+
+COMO INSTALAR UM PLUGIN QUE VOCE BAIXOU
+========================================
+
+Cada plugin vem numa pasta. Voce arrasta a pasta inteira para dentro de:
+
+    Conan-Api\Plugins\
+
+E pronto. Nao precisa editar arquivo nenhum, nao precisa ligar nada.
+Reinicie o servidor e ele carrega.
+
+Fica assim:
+
+    Conan-Api\
+       Plugins\
+          Permission\           <- ja vem, e o padrao
+             ConanPermission.dll
+             config.json
+          PluginQueVoceBaixou\  <- voce arrastou esta pasta
+             PluginQueVoceBaixou.dll
+             config.json
+
+Para DESINSTALAR: apague a pasta do plugin. So isso.
+
+Para DESLIGAR sem apagar (por exemplo, para testar se ele e a causa de algo):
+crie um arquivo vazio chamado DESLIGADO dentro da pasta dele.
+
+Se um plugin nao carregar, Conan-Api\Logs\ConanLoader.log diz o motivo em
+portugues, com o nome da pasta.
+
+A documentação completa está em Conan-Api/Docs/COMECAR.md

@@ -1,0 +1,29 @@
+Conan-Api — API de plugins para Conan Exiles Enhanced
+montado em: 18/08/2026 21:15:25 -03
+jogo alvo : Unreal Engine 5.6.1 (++exiles+release) build 24383534
+
+ATENÇÃO: os offsets desta API são desta build do jogo. Quando o Conan
+atualizar, nenhum plugin carrega (de propósito) e o motivo aparece em
+Conan-Api/Logs/ConanLoader.log. Não é defeito: é a API se recusando a
+ler memória que mudou de lugar.
+
+──────────────────────────────────────────────────────────────────
+RECOMPILADO NESTA MONTAGEM — é o que você tem em mãos
+──────────────────────────────────────────────────────────────────
+Compilados do zero AGORA. O sha256 abaixo muda a cada montagem
+(timestamps de build entram no binário), mesmo sem UMA linha de código
+mudar. Não são, byte a byte, os que rodaram no servidor quando as
+provas do Docs/ESTADO.md foram colhidas: são um build NOVO da MESMA
+fonte. Quem garante o comportamento é a fonte e os portões, não a
+igualdade de bytes.
+
+  4494ab6cae89e6b9  Conan-Api/Plugins/Permission/ConanPermission.dll
+  fafa9fe754ceb01e  winmm.dll
+
+──────────────────────────────────────────────────────────────────
+VALIDADO RODANDO NO SERVIDOR — os bytes por trás das provas
+──────────────────────────────────────────────────────────────────
+implantado em: 2026-08-18 20:23:25
+(o sha aqui DIFERE do de cima de propósito: build diferente, fonte
+ igual — é o que prova que a diferença de bytes é só o build.)
+  5003c3d9e1df1550  winmm.dll
