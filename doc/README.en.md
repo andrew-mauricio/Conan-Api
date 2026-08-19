@@ -239,6 +239,8 @@ filesystem felt like listing, and one day it would load the wrong one unnoticed.
 
 ---
 
+![The Exiled Lands](../.github/imagens/conan-2.jpg)
+
 ## Permission — VIP and permissions
 
 It ships in the package, and it is the plugin the others ask when they need to
