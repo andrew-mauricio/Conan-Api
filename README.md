@@ -241,6 +241,8 @@ e um dia carregaria a errada sem ninguém ver.
 
 ---
 
+![O Exílio](.github/imagens/conan-2.jpg)
+
 ## O Permission — VIP e permissões
 
 Vem junto no pacote, e é o plugin que os outros consultam quando precisam saber
