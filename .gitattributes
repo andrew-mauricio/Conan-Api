@@ -1,7 +1,0 @@
-# A guarda de documentacao e script de shell: precisa de LF mesmo quando o
-# clone e Windows com core.autocrlf=true. Com CRLF, o runner Ubuntu do CI
-# recusa o interpretador e a guarda deixaria de rodar -- falha do instrumento,
-# nao do repositorio.
-*.sh text eol=lf
-*.yml text eol=lf
-.githooks/* text eol=lf
