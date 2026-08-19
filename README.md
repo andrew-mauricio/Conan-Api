@@ -179,6 +179,35 @@ o problema à atualização do jogo.
 Prefira o servidor que não sobe com plugin ao servidor que sobe mentindo. Quando
 isso acontecer, espere uma versão atualizada aqui.
 
+### E os plugins que você instalou?
+
+A maioria continua valendo. Um plugin conversa com a API por uma tabela de
+funções, e essa tabela não muda de forma quando o jogo atualiza — quem é refeita
+é a API.
+
+A exceção são os plugins que gravaram **endereços do jogo** dentro do próprio
+binário. Esses passam a ler o lugar errado depois de um patch, e o pior é que
+não dá erro: eles funcionam, só que com dado errado.
+
+Por isso o autor pode declarar isso no `PluginInfo.json` dele:
+
+```json
+{ "BuildDoJogo": 24784646, "UsaOffsetsCrus": true }
+```
+
+Quando declara, e a build muda, **o carregador recusa o plugin** e escreve no
+log qual é o problema:
+
+```
+[x] LojaDoFulano — feito para a build 24383534 do jogo; esta e' a 24784646.
+    Ele usa offset cru: carregar aqui faria ele ler memoria errada SEM erro
+    nenhum. Peca a versao nova ao autor.
+```
+
+Se um plugin sumir da sua lista depois de uma atualização, procure essa linha
+antes de qualquer outra coisa: ela diz exatamente o que aconteceu e o que
+pedir ao autor.
+
 ---
 
 ## Problemas comuns
