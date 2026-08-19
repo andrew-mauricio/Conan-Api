@@ -20,6 +20,31 @@ simplemente que eso no existe.
 **Esta API llena ese hueco.** Copias dos cosas a la carpeta del servidor, una
 vez. A partir de ahí, instalar un plugin es arrastrar una carpeta.
 
+Si ya administraste un servidor de ARK o de ASA, es la misma idea del **ArkApi**
+y del **AsaApi**, ahora para Conan Exiles.
+
+### "Pero ya hay mods para eso"
+
+Los hay, y la diferencia es una sola — pero lo decide todo:
+
+| | mod | plugin |
+|---|---|---|
+| el jugador tiene que descargarlo | **sí** | no |
+| aparece en la lista del Workshop | sí | — |
+| "no puedo entrar, falta un mod" | pasa | no existe |
+| se actualiza cuando el autor publica | el jugador tiene que sincronizar | solo tú |
+| quién lo instala | tú **y** cada jugador | solo tú |
+
+Un plugin corre **entero en el servidor**. El jugador entra con el cliente
+limpio: sin suscripción, sin sincronizar nada, sin descubrir al entrar que falta
+un archivo. Para un servidor que quiere jugador casual, esa es la diferencia
+entre que alguien entre y que alguien se rinda en la pantalla de descarga.
+
+El precio es que un plugin no cambia lo que el cliente **dibuja** — modelos
+nuevos, objetos con arte propia, mapas. Eso sigue siendo trabajo de mod. Un
+plugin cambia lo que el servidor **hace**: comandos, reglas, economía, permisos,
+eventos.
+
 ```
 Conan-Api/
    Plugins/
@@ -286,8 +311,30 @@ son** — VIP desapareciendo, permisos invertidos, y nadie relacionando el
 problema con la actualización del juego.
 
 Prefiere el servidor que no arranca con plugins al servidor que arranca
-mintiendo. Cuando pase, espera aquí una versión actualizada — y suele salir
-rápido, porque la API sabe reencontrarse sola en el ejecutable nuevo.
+mintiendo.
+
+### "¿Pero no sabe reencontrarse sola?"
+
+Sí, y las dos cosas no se contradicen — son etapas distintas:
+
+**Encontrar las direcciones nuevas es automático.** La API no guarda las
+direcciones como números: las encuentra por patrones de bytes en el ejecutable
+del juego. Cuando Funcom recompila, el layout cambia pero el código alrededor de
+cada ancla sigue siendo reconocible, y una herramienta lee las direcciones
+nuevas directamente del `.exe` — sin ni siquiera arrancar el servidor.
+
+**Cargar igualmente no lo es.** La comprobación de build es deliberada y va antes
+que todo. "Encontré las direcciones" no es lo mismo que "verifiqué que todo
+sigue en su sitio": los offsets de los campos dentro de las clases también se
+mueven, y esos hay que recogerlos con el servidor en marcha. Hasta que eso se
+hace y se verifica, la API prefiere no arrancar.
+
+**¿Cuánto tarda eso en la práctica?** No lo sabemos. Este proyecto es anterior al
+primer parche del Enhanced desde que existe — todas las versiones publicadas
+hasta hoy son de la misma build (`24784646`). El mecanismo está probado contra un
+ejecutable que modificamos a propósito, pero **nunca contra una actualización
+real de Funcom**. Cuando llegue la primera, esta sección tendrá un número medido
+en lugar de esta frase.
 
 ### ¿Y los plugins que instalaste?
 
@@ -342,6 +389,23 @@ header, ejemplos con código fuente y la guía de compilación.
 
 Están separados a propósito: quien administra un servidor no necesita compilador
 para nada, y quien escribe plugins no necesita los binarios del servidor.
+
+---
+
+## Licencia, en tres líneas
+
+**Puedes ejecutar esto en tantos servidores como quieras, incluso en uno que
+cobra a sus jugadores.** Sin tarifa, sin autorización que pedir.
+
+**Puedes difundir e indexar el enlace de este repositorio donde quieras** — web,
+foro, vídeo, lista de recursos. El enlace es libre.
+
+**Lo que no puedes es revender ni re-hospedar la API.** Nada de espejar la
+descarga, incrustar los archivos en otro paquete ni incluirla en nada comercial.
+Quien quiera la API la coge aquí.
+
+Los plugins son otra historia y no son nuestros: quien escribe uno elige su
+licencia, y puede venderlo. El texto completo está en [LICENSE](../LICENSE).
 
 ---
 
