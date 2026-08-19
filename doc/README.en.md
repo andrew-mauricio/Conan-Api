@@ -19,6 +19,30 @@ teleport, the game's answer is simply that those do not exist.
 **This API fills that gap.** You copy two items into the server folder, once.
 From then on, installing a plugin means dragging a folder.
 
+If you have run an ARK or ASA server before, this is the same idea as **ArkApi**
+and **AsaApi**, now for Conan Exiles.
+
+### "But there are already mods for that"
+
+There are, and the difference is a single one — but it decides everything:
+
+| | mod | plugin |
+|---|---|---|
+| the player has to download it | **yes** | no |
+| shows up in the Workshop list | yes | — |
+| "I can't join, a mod is missing" | happens | does not exist |
+| updates when the author publishes | the player has to sync | only you |
+| who installs it | you **and** every player | only you |
+
+A plugin runs **entirely on the server**. The player joins with a clean client:
+no subscription, nothing to sync, no discovering at join time that a file is
+missing. For a server that wants casual players, that is the difference between
+someone joining and someone giving up at the download screen.
+
+The price is that a plugin cannot change what the client **draws** — new models,
+new items with their own art, maps. That is still mod work. A plugin changes what
+the server **does**: commands, rules, economy, permissions, events.
+
 ```
 Conan-Api/
    Plugins/
@@ -277,9 +301,31 @@ handing back numbers that **look right and are not** — VIP vanishing,
 permissions inverted, and nobody connecting the problem to the game update.
 
 Prefer the server that will not come up with plugins over the server that comes
-up lying. When it happens, wait for an updated version here — and it tends to
-come quickly, because the API knows how to find its own way around the new
-executable.
+up lying.
+
+### "But doesn't it find its own way around?"
+
+It does, and the two things do not contradict each other — they are different
+steps:
+
+**Finding the new addresses is automatic.** The API does not store addresses as
+numbers: it finds them by byte patterns in the game executable. When Funcom
+recompiles, the layout moves but the code around each anchor stays recognisable,
+and a tool reads the new addresses straight from the `.exe` — without even
+starting the server.
+
+**Loading anyway is not.** The build check is deliberate and comes before
+everything else. "I found the addresses" is not the same as "I verified that
+everything is still in place": the offsets of fields inside classes move too, and
+those have to be re-collected with the server running. Until that is done and
+verified, the API would rather not come up.
+
+**How long does that take in practice?** We do not know. This project predates
+the first Enhanced patch since it has existed — every version published so far
+is for the same build (`24784646`). The mechanism is tested against an executable
+we modified on purpose, but **never against a real Funcom update**. When the
+first one lands, this section gets a measured number in place of this
+sentence.
 
 ### What about the plugins you installed?
 
@@ -335,6 +381,23 @@ header, examples with source code and the build guide live there.
 
 They are separate on purpose: someone running a server needs no compiler at all,
 and someone writing a plugin needs none of the server binaries.
+
+---
+
+## Licence, in three lines
+
+**You may run this on as many servers as you like, including a server that
+charges its players.** No fee, no authorisation to ask for.
+
+**You may share and index this repository's link anywhere** — site, forum,
+video, resource list. The link is free.
+
+**What you may not do is resell or re-host the API.** No mirroring the download,
+no embedding the files in another package, no including it in anything
+commercial. Whoever wants the API gets it here.
+
+Plugins are a different story and are not ours: whoever writes one chooses its
+licence, and may sell it. The full text is in [LICENSE](../LICENSE).
 
 ---
 
