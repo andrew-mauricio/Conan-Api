@@ -1,4 +1,6 @@
-![Conan Exiles Enhanced](.github/imagens/conan-header.jpg)
+<p align="center">
+  <img src=".github/imagens/conan-header.jpg" alt="Conan Exiles Enhanced">
+</p>
 
 <p align="center">
   <a href="README.md"><img src=".github/imagens/bandeiras/br.png" alt="Portugues" height="13">&nbsp;<b>Portugu&ecirc;s</b></a>
