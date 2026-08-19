@@ -43,7 +43,9 @@ servidor, ler os dados de identidade dos seus jogadores, escrever qualquer
 arquivo que o servidor alcance, abrir conexão de rede, e derrubar o servidor.
 
 **A API contém** falha de plugin ao carregar (o servidor sobe sem ele), exceção
-dentro de um hook na maioria dos casos, e conflito entre dois plugins.
+dentro de um hook na maioria dos casos, exceção em trabalho que o plugin agende
+para rodar depois (nesse caso ele entra em quarentena e o servidor segue), e
+conflito entre dois plugins.
 **A API não contém** plugin malicioso: não existe sandbox, e não vai existir.
 
 Trate plugin como você trataria qualquer programa que instala no seu servidor:
@@ -80,12 +82,20 @@ Conan-Api/     a pasta com tudo dentro
 ```
 == ConanLoader iniciado ==
 [winmm] encaminhadores prontos: 189 apontam para a winmm_orig, 0 ficaram ausentes.
-reflexao estavel: 1508584 objetos vivos (nao cresceu alem de ~2% por 120 s).
-1 pasta(s) de plugin encontrada(s).
+[conferencia] 1 plugin(s) na pasta, 0 ja reprovado(s) na conferencia de arquivos.
+[fase1] 1 DLL(s) abertas e validadas, 0 reprovada(s). As que passaram serao
+        ATIVADAS quando o mundo terminar.
+mundo montado: achei o GameMode vivo ("ConanGameMode") com 92103 objetos.
+Carregando os plugins AGORA, sem esperar a janela de 120 s.
   [ok] Permission  "Permissões"  v1.0.0  api>=2
        Permissões, grupos e VIP. Outros plugins consultam por ConanPermission.h.
 == 1 plugin(s) carregado(s), 0 com falha ==
 ```
+
+As duas primeiras linhas de `[conferencia]` e `[fase1]` aparecem **em segundos**,
+logo no arranque: a API abre cada DLL, confere o `PluginInfo.json` e as
+dependências antes de o servidor aceitar o primeiro jogador. Se um plugin está
+quebrado, você descobre ali — não minutos depois.
 
 Se esse arquivo não for criado, o carregador não entrou — reveja o passo 3.
 
@@ -113,6 +123,12 @@ flowchart TD
 antes disso encontra um mundo pela metade e conclui coisa errada. Já aconteceu
 aqui: um plugin subiu cedo demais e travou o servidor em 4,3 GB em vez dos 8,7
 normais.
+
+Mas ele **pergunta ao jogo** em vez de olhar o relógio: assim que o `GameMode`
+existe — a mesma condição que faz o servidor imprimir `Match State ... InProgress`
+— os plugins entram. Antes isso era uma janela fixa de espera, e o resultado
+medido aqui foi de **12 minutos** entre o mundo estar pronto e o primeiro plugin
+responder. Hoje são **cinco segundos**.
 
 ---
 
