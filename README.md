@@ -13,49 +13,75 @@
 # Conan-Api — plugins no seu servidor de Conan Exiles
 
 O servidor dedicado do Conan Exiles não tem sistema de plugins. Não existe uma
-pasta onde você joga um arquivo e ganha um recurso novo. Se você quer um `/kit`,
-um sistema de VIP ou um teleporte, a resposta do jogo é que isso não existe.
+pasta onde você joga um arquivo e ganha um recurso novo. Se você quer um `!kit`,
+um sistema de VIP ou um teleporte, a resposta do jogo é simplesmente que isso
+não existe.
 
-Esta API resolve isso. Você copia duas coisas para a pasta do servidor, e a
-partir daí instalar um plugin é **arrastar uma pasta**.
+**É esse buraco que esta API preenche.** Você copia dois itens para a pasta do
+servidor, uma vez. A partir daí, instalar um plugin é arrastar uma pasta.
 
 ```
 Conan-Api/
    Plugins/
-      Permission/            <- já vem, controla VIP e permissões
-      PluginQueVoceBaixou/   <- você arrastou esta pasta aqui
+      Permission/            <- já vem junto: controla VIP e permissões
+      LojaDoFulano/          <- você arrastou esta aqui
+      TeleporteDoBeltrano/   <- e esta
 ```
 
-Só isso. Não tem arquivo de configuração para editar, não tem lista para
-preencher, não tem comando para rodar. A pasta estar ali é a instalação.
+Sem arquivo de configuração para editar. Sem lista para preencher. Sem comando
+para rodar. **A pasta estar ali é a instalação.** Apagar a pasta é a
+desinstalação.
 
 ---
 
-## Antes de tudo: isto roda dentro do seu servidor
+## O que dá para ter no seu servidor
+
+A API não faz nada sozinha — ela abre a porta para que outras pessoas escrevam
+coisas. O que já é possível hoje, e está provado funcionando:
+
+| o que o plugin faz | como o jogador usa |
+|---|---|
+| **comandos no chat** | ele digita `!kit`, `!online`, `!loja` e o plugin responde |
+| **mensagem na tela** | aparece por cima da tela dele, sem passar pelo chat |
+| **aviso para todos** | uma linha que chega a todo mundo conectado ao mesmo tempo |
+| **reagir a eventos** | alguém entrou, morreu, coletou madeira, matou um NPC |
+| **VIP e permissões** | quem pode o quê, com grupos, guardado em banco |
+| **ler e mudar o mundo** | posição de um jogador, item no inventário, estado de um objeto |
+
+Uma loja que vende itens pelo chat, um teleporte com pontos salvos, boas-vindas
+personalizadas, kit diário só para VIP, aviso automático antes do restart — tudo
+isso é escrito **por cima** desta API, por quem quiser.
+
+O que existe hoje pronto é o **Permission**, que vem no pacote. O resto virá da
+comunidade, e é para isso que o [SDK](../../../Conan-Api-SDK) existe.
+
+---
+
+## Antes de instalar qualquer coisa: leia isto
 
 Um plugin é uma DLL que roda **dentro do processo do servidor**, com os mesmos
-poderes que ele. Isso não é limitação desta API — é o que significa "plugin
-nativo" em qualquer jogo. Mas precisa estar dito antes de você instalar
-qualquer coisa, e em letra grande:
+poderes que ele. Isso não é limitação desta API — é o que "plugin nativo"
+significa em qualquer jogo. Mas você precisa saber antes, e em letra grande:
 
 **Um plugin instalado pode** ler e alterar qualquer coisa na memória do
-servidor, ler os dados de identidade dos seus jogadores, escrever qualquer
-arquivo que o servidor alcance, abrir conexão de rede, e derrubar o servidor.
+servidor, ver os dados de identidade dos seus jogadores, escrever qualquer
+arquivo que o servidor alcance, abrir conexão de rede e derrubar o servidor.
 
-**A API contém** falha de plugin ao carregar (o servidor sobe sem ele), exceção
-dentro de um hook na maioria dos casos, exceção em trabalho que o plugin agende
-para rodar depois (nesse caso ele entra em quarentena e o servidor segue), e
-conflito entre dois plugins.
-**A API não contém** plugin malicioso: não existe sandbox, e não vai existir.
+**A API segura** falha de plugin ao carregar (o servidor sobe sem ele), erro
+dentro de um hook na maioria dos casos, erro em tarefa que o plugin agendou para
+depois (ele entra em quarentena e o servidor segue), e conflito entre dois
+plugins.
+
+**A API não segura** plugin malicioso. Não existe sandbox, e não vai existir.
 
 Trate plugin como você trataria qualquer programa que instala no seu servidor:
 de quem você confia, de preferência com o código à vista.
 
 ---
 
-## Instalar — cinco minutos
+## Instalar — cinco minutos, uma vez só
 
-Baixe o pacote em [Releases](../../releases). Você vai ter dois itens:
+Baixe o pacote em [Releases](../../releases). Vêm dois itens:
 
 ```
 winmm.dll      o carregador. Sem ele, nada acontece.
@@ -75,94 +101,146 @@ Conan-Api/     a pasta com tudo dentro
 > em silêncio — sem log, sem erro, só não sobe. Apague a `winmm.dll` nova e
 > recomece deste passo.
 
-**4.** Copie a `winmm.dll` (a nossa) e a pasta `Conan-Api` para essa mesma pasta.
+**4.** Copie a nossa `winmm.dll` e a pasta `Conan-Api` para essa mesma pasta.
 
-**5.** Suba o servidor e abra `Conan-Api\Logs\ConanLoader.log`. Deve estar assim:
+**5.** Suba o servidor e abra `Conan-Api\Logs\ConanLoader.log`.
+
+Se ele não existir, o carregador não entrou — reveja o passo 3.
+
+### Por que renomear uma DLL do Windows?
+
+Porque o servidor do Conan não tem onde encaixar um plugin. Ele não procura por
+extensões, não lê pasta de módulos, não tem ponto de entrada nenhum.
+
+O que ele faz, como todo programa Windows, é carregar as bibliotecas do sistema
+ao iniciar — e a `winmm.dll` é uma delas. Nós entramos por ali: a nossa DLL tem
+o nome que ele procura, e, ao ser carregada, ela **repassa todas as chamadas**
+para a original que você renomeou. O jogo não perde nada; nós ganhamos um lugar
+de onde trabalhar.
+
+É por isso que o passo 3 importa tanto. Se a original não estiver como
+`winmm_orig.dll`, as chamadas não têm para onde ir.
+
+---
+
+## Como o carregamento funciona, em português
+
+Quando o servidor sobe, três coisas acontecem em ordem — e a ordem é a parte
+importante:
+
+**1. Nós entramos, mas não mexemos em nada.** A `winmm.dll` é carregada junto
+com o servidor, repassa as chamadas do sistema e sai da frente. O jogo começa a
+subir normalmente.
+
+**2. Conferimos os plugins enquanto o mundo carrega.** Nesses segundos iniciais
+a API abre cada DLL da pasta `Plugins/`, lê a ficha de cada uma, confere as
+dependências e as versões. Se um plugin estiver quebrado, **você descobre aqui**
+— no arranque, não meia hora depois.
+
+**3. Ligamos os plugins quando o mundo existe.** E este passo espera de
+propósito. Um plugin que procura jogadores antes de o mundo carregar encontra um
+mundo pela metade e conclui coisa errada. Já aconteceu aqui: um plugin subiu
+cedo demais e travou o servidor em 4,3 GB em vez dos 8,7 normais.
+
+Mas a espera não é um cronômetro — é uma **pergunta ao jogo**. Assim que o
+`GameMode` existe (a mesma condição que faz o servidor imprimir
+`Match State ... InProgress`), os plugins entram. Antes isso era um tempo fixo,
+e o resultado medido aqui foi de **12 minutos** entre o mundo estar pronto e o
+primeiro plugin responder. Hoje são **cinco segundos**.
+
+```mermaid
+flowchart TD
+    A[Servidor sobe] --> B[winmm.dll entra e repassa as chamadas]
+    B --> C{A build do jogo<br/>é a esperada?}
+    C -->|não| D[PARA e escreve o motivo.<br/>Nenhum plugin carrega.]
+    C -->|sim| E[Confere as fichas dos plugins<br/>enquanto o mundo carrega]
+    E --> F{Falta alguma<br/>dependência?}
+    F -->|sim| G[RECUSA e diz qual falta]
+    F -->|não| H[Espera o GameMode existir]
+    H --> I[Liga os plugins, um a um,<br/>segurando as falhas]
+```
+
+### O que você deve ver no log
 
 ```
 == ConanLoader iniciado ==
 [winmm] encaminhadores prontos: 189 apontam para a winmm_orig, 0 ficaram ausentes.
 [conferencia] 1 plugin(s) na pasta, 0 ja reprovado(s) na conferencia de arquivos.
-[fase1] 1 DLL(s) abertas e validadas, 0 reprovada(s). As que passaram serao
-        ATIVADAS quando o mundo terminar.
+[fase1] 1 DLL(s) abertas e validadas, 0 reprovada(s).
 mundo montado: achei o GameMode vivo ("ConanGameMode") com 92103 objetos.
-Carregando os plugins AGORA, sem esperar a janela de 120 s.
   [ok] Permission  "Permissões"  v1.0.0  api>=2
-       Permissões, grupos e VIP. Outros plugins consultam por ConanPermission.h.
 == 1 plugin(s) carregado(s), 0 com falha ==
 ```
 
-As duas primeiras linhas de `[conferencia]` e `[fase1]` aparecem **em segundos**,
-logo no arranque: a API abre cada DLL, confere o `PluginInfo.json` e as
-dependências antes de o servidor aceitar o primeiro jogador. Se um plugin está
-quebrado, você descobre ali — não minutos depois.
-
-Se esse arquivo não for criado, o carregador não entrou — reveja o passo 3.
+Cada plugin aparece com o nome, a versão e o veredito. Um `[x]` no lugar do
+`[ok]` sempre vem com o motivo escrito ao lado.
 
 ---
 
-## Como o carregador escolhe o que subir
+## Instalar sem derrubar o servidor
 
-```mermaid
-flowchart TD
-    A[Servidor sobe] --> B[winmm.dll entra no processo]
-    B --> C{A build do jogo<br/>é a esperada?}
-    C -->|não| D[PARA e escreve o motivo.<br/>Nenhum plugin carrega.]
-    C -->|sim| E[Espera o mundo terminar de carregar]
-    E --> F[Lê cada pasta de Plugins/]
-    F --> G{A pasta tem<br/>PluginInfo.json?}
-    G -->|sim| H{Exige uma API<br/>mais nova que esta?}
-    H -->|sim| I[RECUSA e diz qual versão falta]
-    H -->|não| J[Entra na fila]
-    G -->|não| J
-    J --> K[Ordena por dependência declarada]
-    K --> L[Carrega, um a um, contendo falhas]
+Para adicionar um plugin **novo**, você não precisa mais parar tudo:
+
+```
+1. copie a pasta do plugin para Conan-Api/Plugins/
+2. crie um arquivo vazio chamado CARREGAR-NOVOS, ao lado da pasta Logs/
 ```
 
-**Ele espera o mundo carregar de propósito.** Um plugin que procura jogadores
-antes disso encontra um mundo pela metade e conclui coisa errada. Já aconteceu
-aqui: um plugin subiu cedo demais e travou o servidor em 4,3 GB em vez dos 8,7
-normais.
+Em até três segundos o carregador atende, faz as mesmas conferências de sempre e
+liga o plugin. O log diz o resultado:
 
-Mas ele **pergunta ao jogo** em vez de olhar o relógio: assim que o `GameMode`
-existe — a mesma condição que faz o servidor imprimir `Match State ... InProgress`
-— os plugins entram. Antes isso era uma janela fixa de espera, e o resultado
-medido aqui foi de **12 minutos** entre o mundo estar pronto e o primeiro plugin
-responder. Hoje são **cinco segundos**.
+```
+[novos] [ok] LojaDoFulano carregado SEM reiniciar o servidor.
+```
+
+**Trocar a versão de um plugin que já está rodando ainda exige reiniciar.** Isso
+não é preguiça nossa: um plugin já carregado tem ganchos armados dentro do jogo,
+e possivelmente tarefas esperando para rodar. Descarregar o código dele com
+qualquer uma dessas coisas viva faz o servidor pular para um endereço que não
+existe mais — e o problema aparece **depois**, longe da causa, num lugar que não
+aponta para o plugin. Preferimos pedir um restart a entregar isso.
 
 ---
 
-## Instalar, desinstalar, desligar
+## O dia a dia
 
 | você quer | você faz |
 |---|---|
-| instalar um plugin | arrasta a pasta dele para `Conan-Api/Plugins/` |
+| instalar um plugin | arrasta a pasta para `Conan-Api/Plugins/` |
+| instalar sem parar o servidor | copia a pasta e cria o arquivo `CARREGAR-NOVOS` |
 | desinstalar | apaga a pasta |
-| desligar sem perder a configuração | cria um arquivo vazio chamado `DESLIGADO` dentro da pasta dele |
-| descobrir o que aconteceu | abre `Conan-Api/Logs/ConanLoader.log` |
+| desligar sem perder a configuração | cria um arquivo vazio `DESLIGADO` dentro da pasta dele |
+| entender o que aconteceu | abre `Conan-Api/Logs/ConanLoader.log` |
 
 Se uma pasta tiver mais de uma `.dll`, o carregador usa a que tem o nome da
 pasta. Se houver duas e nenhuma com o nome certo, ele **recusa e diz qual
-renomear** — escolher "a primeira" mudaria conforme o sistema de arquivos
-resolvesse listar, e um dia carregaria a errada sem ninguém ver.
+renomear** — escolher "a primeira" mudaria conforme o sistema resolvesse listar,
+e um dia carregaria a errada sem ninguém ver.
 
 ---
 
 ## O Permission — VIP e permissões
 
-Vem junto e é o plugin que os outros consultam. Ele guarda quem tem o quê num
-banco local, dentro da própria pasta:
+Vem junto no pacote, e é o plugin que os outros consultam quando precisam saber
+quem pode o quê. Ele guarda tudo num banco dentro da própria pasta:
 
 ```
 Conan-Api/Plugins/Permission/
    ConanPermission.dll
-   config.json          <- os nomes dos grupos, e o banco (veja abaixo)
+   config.json          <- nomes dos grupos, e onde fica o banco
    permission.db        <- nasce sozinho na primeira execução
 ```
 
-**Se você não mexer em nada**, ele usa esse banco local e funciona. Se você
-quiser um MySQL — porque tem vários servidores e quer o VIP compartilhado entre
-eles — é uma linha no `config.json`.
+**Se você não mexer em nada, funciona.** O banco local resolve para a maioria
+dos servidores.
+
+Se você tem **vários servidores** e quer o VIP compartilhado entre eles, é uma
+linha no `config.json` apontando para um MySQL. Os plugins que consultam o
+Permission não percebem diferença — a pergunta é a mesma nos dois casos.
+
+E se o banco cair, o Permission responde "não sei" em vez de "não tem permissão".
+Quem escreve plugin decide o que fazer com esse "não sei"; quem administra o
+servidor não perde o VIP de ninguém por causa de uma queda de rede.
 
 ---
 
@@ -170,14 +248,15 @@ eles — é uma linha no `config.json`.
 
 A API vai **se recusar a carregar**, de propósito, e vai dizer isso no log.
 
-Isso não é defeito. Ela conhece o jogo por endereços de memória desta versão
-específica; quando a Funcom atualiza, esses endereços mudam de lugar. Uma API que
-continuasse trabalhando estaria lendo memória aleatória e entregando números
-plausíveis e falsos — seu VIP sumiria, permissões inverteriam, e ninguém ligaria
-o problema à atualização do jogo.
+Isso não é defeito, é a parte mais importante do projeto. Ela conhece o jogo por
+endereços de memória de uma versão específica; quando a Funcom atualiza, esses
+endereços mudam de lugar. Uma API que continuasse trabalhando estaria lendo
+memória aleatória e devolvendo números que **parecem certos e não são** — VIP
+sumindo, permissão invertida, e ninguém ligando o problema à atualização do jogo.
 
 Prefira o servidor que não sobe com plugin ao servidor que sobe mentindo. Quando
-isso acontecer, espere uma versão atualizada aqui.
+acontecer, espere uma versão atualizada aqui — e ela costuma sair rápido, porque
+a API sabe se reencontrar sozinha no executável novo.
 
 ### E os plugins que você instalou?
 
@@ -189,14 +268,8 @@ A exceção são os plugins que gravaram **endereços do jogo** dentro do própr
 binário. Esses passam a ler o lugar errado depois de um patch, e o pior é que
 não dá erro: eles funcionam, só que com dado errado.
 
-Por isso o autor pode declarar isso no `PluginInfo.json` dele:
-
-```json
-{ "BuildDoJogo": 24784646, "UsaOffsetsCrus": true }
-```
-
-Quando declara, e a build muda, **o carregador recusa o plugin** e escreve no
-log qual é o problema:
+Por isso o autor pode declarar isso na ficha do plugin dele. Quando declara, e a
+build muda, **o carregador recusa** e escreve o motivo:
 
 ```
 [x] LojaDoFulano — feito para a build 24383534 do jogo; esta e' a 24784646.
@@ -205,23 +278,27 @@ log qual é o problema:
 ```
 
 Se um plugin sumir da sua lista depois de uma atualização, procure essa linha
-antes de qualquer outra coisa: ela diz exatamente o que aconteceu e o que
-pedir ao autor.
+antes de qualquer outra coisa: ela diz exatamente o que aconteceu e o que pedir
+ao autor.
 
 ---
 
-## Problemas comuns
+## Quando alguma coisa não funciona
 
 **"Instalei e nenhum plugin funciona"** — abra `Conan-Api\Logs\ConanLoader.log`.
-Se o arquivo não existe, o carregador não entrou: a `winmm.dll` não está ao lado
+Se o arquivo nem existe, o carregador não entrou: a `winmm.dll` não está ao lado
 do executável, ou você esqueceu de renomear a original.
 
 **"O servidor não sobe e não diz nada"** — quase sempre é `winmm_orig.dll`
-apontando para si mesma (instalação por cima de outra). Veja o passo 3.
+apontando para si mesma, de uma instalação por cima de outra. Veja o passo 3.
 
 **"Um plugin específico não carrega"** — o log diz o motivo, com o nome da pasta.
-Pode ser DLL faltando, `PluginInfo.json` exigindo API mais nova, ou o arquivo
+Costuma ser DLL faltando, ficha exigindo uma API mais nova, ou um arquivo
 `DESLIGADO` esquecido lá dentro.
+
+**"Instalei com CARREGAR-NOVOS e não aconteceu nada"** — o arquivo é apagado
+assim que é atendido. Se ele continua lá depois de alguns segundos, o carregador
+não está rodando: confira o log do arranque.
 
 ---
 
@@ -230,9 +307,11 @@ Pode ser DLL faltando, `PluginInfo.json` exigindo API mais nova, ou o arquivo
 ## Escrever seus próprios plugins
 
 É outro repositório: **[Conan-Api-SDK](../../../Conan-Api-SDK)**. Lá estão o
-header, seis exemplos com código-fonte e o guia de compilação. São separados
-porque quem administra um servidor não precisa de compilador para nada, e quem
-escreve plugin não precisa dos binários do servidor.
+header, exemplos com código-fonte e o guia de compilação.
+
+São separados de propósito: quem administra um servidor não precisa de
+compilador para nada, e quem escreve plugin não precisa dos binários do
+servidor.
 
 ---
 
