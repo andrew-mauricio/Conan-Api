@@ -1,0 +1,1035 @@
+{
+  "_leia_isto": [
+    "CONAN SHOP — loja por pontos, no estilo do ArkShop.",
+    "",
+    "COMO FUNCIONA EM UMA LINHA",
+    "  o jogador ganha pontos por tempo online, ve a lista com !shop, e compra com !comprar <id>.",
+    "",
+    "O QUE VOCE PROVAVELMENTE QUER MEXER, NESTA ORDEM",
+    "  1. \"itens\"     — o que se vende e por quanto",
+    "  2. \"pontos\"    — quanto cada grupo ganha, e de quantos em quantos minutos",
+    "  3. \"mensagens\" — o que o jogador le",
+    "  O resto ja vem no lugar certo.",
+    "",
+    "DEPOIS DE EDITAR: !shopreload no chat (precisa da permissao shop.admin).",
+    "  Nao precisa reiniciar o servidor. Se o arquivo tiver erro de sintaxe, o plugin",
+    "  RECUSA a troca e continua com a configuracao ANTERIOR — em vez de subir vazio",
+    "  e deixar a loja sem itens no meio do horario de pico.",
+    "",
+    "POR QUE NAO HA COMANDO DE RCON",
+    "  O RCON do Conan so aceita comandos que o proprio jogo conhece; nao ha como um",
+    "  plugin registrar um novo (medido em 20/08/2026 — e, de quebra, descobriu-se que",
+    "  mandar `exec` sem argumento pelo RCON derruba o servidor, bug do jogo).",
+    "  Por isso o recarregamento e por chat, protegido por permissao."
+  ],
+  "banco": {
+    "_leia_isto": [
+      "Onde ficam os PONTOS de cada jogador.",
+      "",
+      "\"tipo\": \"local\"  guarda num arquivo conanshop.db ao lado do plugin. Nao precisa",
+      "                 instalar nada, nao precisa de senha, e e o certo para 99% dos",
+      "                 servidores. SE VOCE NAO SABE O QUE E ISSO, DEIXE COMO ESTA.",
+      "",
+      "\"tipo\": \"mysql\" so para quem roda VARIOS servidores e quer os pontos valendo em",
+      "                 todos, ou ja tem um painel web. Ai as chaves abaixo passam a ser",
+      "                 obrigatorias. Qualquer outro valor e RECUSADO e o plugin nao sobe —",
+      "                 de proposito: se eu caisse no local calado depois de voce escrever",
+      "                 \"mysqll\", os pontos iriam para um arquivo e voce so descobriria",
+      "                 procurando no MySQL e nao achando.",
+      "",
+      "APAGAR O BANCO LOCAL exige apagar tambem conanshop.db-wal e conanshop.db-shm.",
+      "Sem isso o dado RESSUSCITA na proxima abertura e o apagamento parece feito."
+    ],
+    "tipo": "local",
+    "mysql_host": "127.0.0.1",
+    "mysql_porta": 3306,
+    "mysql_usuario": "",
+    "mysql_senha": "",
+    "mysql_banco": "",
+    "mysql_prazo_conectar_ms": 5000,
+    "mysql_prazo_operar_ms": 10000,
+    "caminho_local": ""
+  },
+  "pontos": {
+    "_leia_isto": [
+      "O jogador ganha pontos enquanto esta ONLINE, de tempos em tempos.",
+      "",
+      "\"minutos\"  de quantos em quantos minutos cada credito acontece.",
+      "\"grupos\"   quanto cada grupo do Permission ganha por credito.",
+      "",
+      "\"somar\": false  — o jogador recebe o MAIOR valor entre os grupos dele.",
+      "                  Um VIP que tambem esta em default ganha 15, nao 20.",
+      "\"somar\": true   — recebe a SOMA. O mesmo VIP ganharia 20.",
+      "  false e o padrao porque e o que quase todo servidor quer: o grupo melhor",
+      "  substitui o basico, nao se empilha com ele.",
+      "",
+      "Os nomes em \"grupos\" sao as CHAVES dos grupos no permission.json. Se voce criar",
+      "um grupo novo la (por exemplo \"patrono\"), acrescente-o aqui para ele ganhar pontos.",
+      "Grupo que nao aparece aqui simplesmente nao gera pontos — nao e erro.",
+      "",
+      "\"avisar_no_chat\": avisa o jogador a cada credito. Alguns donos acham poluente;",
+      "por isso e configuravel."
+    ],
+    "ligado": true,
+    "minutos": 5,
+    "somar": false,
+    "avisar_no_chat": true,
+    "grupos": {
+      "default": 5,
+      "vip": 15,
+      "vipplus": 25,
+      "admin": 25
+    }
+  },
+  "loja": {
+    "_leia_isto": [
+      "\"itens_por_pagina\"  quantos itens cabem numa pagina de !shop.",
+      "                    15 e o limite pratico da tela; acima disso o texto corta.",
+      "",
+      "\"usar_tela\"  true mostra a lista na TELA (a caixa de mensagem do jogo, aquela",
+      "             com botao de fechar). false manda so pelo chat.",
+      "             O botao da tela e do JOGO e nao pode virar \"proxima pagina\":",
+      "             a paginacao e por comando, !shop 2, !shop 3.",
+      "",
+      "\"contexto\"  a etiqueta que o jogo grava junto do item entregue. Serve para",
+      "            rastrear no log do jogo de onde o item veio. Deixe como esta."
+    ],
+    "itens_por_pagina": 12,
+    "usar_tela": true,
+    "titulo_da_tela": "Loja",
+    "contexto": "ConanShop"
+  },
+  "comandos": {
+    "_leia_isto": [
+      "Os comandos de chat. Mude se quiser outro prefixo (por exemplo /shop no lugar de !shop).",
+      "Nao ponha dois comandos com o mesmo texto: o primeiro atende e o segundo nunca roda.",
+      "",
+      "\"dar\" e \"recarregar\" exigem a permissao de permissoes.admin.",
+      "",
+      "DAR PONTOS DE FORA DO JOGO (painel web, script, SSH, tarefa agendada)",
+      "  Nao ha comando de RCON, e isso foi MEDIDO em 20/08/2026, nao suposto: o RCON",
+      "  do Conan aceita uma lista fixa de comandos e nao registra novos; e a tentativa",
+      "  de pegar carona no `broadcast` falhou — os cinco hooks candidatos ficaram",
+      "  armados, o servidor respondeu 'Message has been broadcast.' e NENHUM disparou.",
+      "  O caminho do RCON e nativo e nao passa pela reflexao do jogo.",
+      "",
+      "  Em lugar disso, escreva linhas no arquivo:",
+      "     <servidor>/ConanSandbox/Binaries/Win64/Conan-Api/SHOP-COMANDOS",
+      "",
+      "     dar     Indio#76973 500 premio do evento",
+      "     tirar   A-4QR7CRS0F 100 estorno",
+      "     definir Indio#76973 0",
+      "     saldo   Indio#76973",
+      "     recarregar",
+      "",
+      "  O plugin atende em ate 3 segundos, APAGA o arquivo (para nao repetir o comando",
+      "  se o servidor cair no meio) e escreve o resultado de cada linha em:",
+      "     <servidor>/ConanSandbox/Binaries/Win64/Conan-Api/SHOP-RESPOSTAS",
+      "",
+      "  O <jogador> pode ser o nome de exibicao (so funciona ONLINE, e a resposta diz",
+      "  isso) ou o id da conta, que funciona sempre — inclusive offline."
+    ],
+    "loja": "!shop",
+    "comprar": "!comprar",
+    "pontos": "!pontos",
+    "ajuda": "!shopajuda",
+    "recarregar": "!shopreload",
+    "dar": "!shopdar"
+  },
+  "permissoes": {
+    "_leia_isto": [
+      "Nos de permissao que este plugin consulta no Permission.",
+      "\"admin\" e quem pode !shopreload. Por padrao o grupo admin tem \"*\", entao ja passa.",
+      "\"comprar\" vazio significa TODO MUNDO pode comprar. Preencha para restringir."
+    ],
+    "admin": "shop.admin",
+    "comprar": ""
+  },
+  "mensagens": {
+    "_leia_isto": [
+      "{0}, {1}, {2} sao trocados pelos valores, na ordem descrita em cada linha.",
+      "Para cor, o Conan aceita o mesmo formato de texto rico do jogo."
+    ],
+    "remetente": "Loja",
+    "recebeu_pontos": "Voce recebeu {0} ponto(s). Total: {1}",
+    "seus_pontos": "Voce tem {0} ponto(s).",
+    "sem_pontos": "Pontos insuficientes: custa {0} e voce tem {1}.",
+    "comprou": "Comprou {0} x{1} por {2} ponto(s). Saldo: {3}",
+    "id_desconhecido": "Nao existe item com id \"{0}\". Veja a lista com !shop",
+    "inventario_cheio": "Seu inventario esta cheio. Abra espaco e tente de novo.",
+    "entrega_falhou": "Nao consegui entregar o item. Seus pontos foram devolvidos.",
+    "sem_permissao": "Voce nao tem permissao para isso.",
+    "sem_personagem": "Voce precisa estar com o personagem no mundo para comprar.",
+    "uso_comprar": "Use: !comprar <id> [quantidade]",
+    "uso_loja": "Use: !shop [pagina]",
+    "pagina_vazia": "Nao ha pagina {0}. A loja tem {1} pagina(s).",
+    "recarregado": "Configuracao recarregada: {0} item(ns).",
+    "recarregar_falhou": "O arquivo tem erro e NAO foi aplicado. Continuo com a configuracao anterior. Motivo: {0}",
+    "rodape_da_lista": "!comprar <id>   ·   pagina {0} de {1}   ·   !shop {2} para a proxima"
+  },
+  "itens": {
+    "_leia_isto": [
+      "CADA ITEM: a chave (\"pedra\") e o que o jogador digita em !comprar pedra.",
+      "",
+      "  \"template_id\"  O NUMERO DO ITEM NO JOGO. E o Row Name da /Game/Items/ItemTable,",
+      "                 e e ELE que entrega o item — nunca o caminho da blueprint.",
+      "                 No Conan, itens simples compartilham a mesma classe nativa",
+      "                 (GameItem): so o id distingue Pedra de Ferro. Modelar por",
+      "                 blueprint, como se faz no ARK, entrega o item errado.",
+      "                 Para descobrir ids: instale o plugin ExtratorItemTable e crie",
+      "                 o arquivo Conan-Api/EXTRAIR-ITEMTABLE. Ele gera a lista completa.",
+      "",
+      "  \"nome\"         o que aparece na lista para o jogador.",
+      "  \"preco\"        em pontos, pela QUANTIDADE abaixo.",
+      "  \"quantidade\"   quantas unidades por compra.",
+      "  \"categoria\"    so agrupa a lista; invente as que quiser.",
+      "  \"permissao\"    (opcional) so quem tem esse no pode comprar. Ex.: \"shop.vip\".",
+      "",
+      "OS PRECOS ABAIXO SAO UM PONTO DE PARTIDA, nao uma recomendacao estudada.",
+      "Com 5 pontos a cada 5 minutos, um jogador comum faz 60 pontos por hora.",
+      "",
+      "COMECE PEQUENO. Uma loja com 20 itens que voce entende vale mais que 500",
+      "que voce nunca conferiu — e item com id errado entrega outra coisa em silencio."
+    ],
+    "stone": {
+      "nome": "Stone",
+      "categoria": "recurso",
+      "template_id": 10001,
+      "quantidade": 100,
+      "preco": 10
+    },
+    "queenbee": {
+      "nome": "Queen Bee",
+      "categoria": "recurso",
+      "template_id": 10002,
+      "quantidade": 100,
+      "preco": 22
+    },
+    "workerbee": {
+      "nome": "Worker Bee",
+      "categoria": "recurso",
+      "template_id": 10003,
+      "quantidade": 100,
+      "preco": 16
+    },
+    "bark": {
+      "nome": "Bark",
+      "categoria": "recurso",
+      "template_id": 10005,
+      "quantidade": 100,
+      "preco": 10
+    },
+    "corruptedbone": {
+      "nome": "Corrupted Bone",
+      "categoria": "recurso",
+      "template_id": 10010,
+      "quantidade": 100,
+      "preco": 10
+    },
+    "wood": {
+      "nome": "Wood",
+      "categoria": "recurso",
+      "template_id": 10011,
+      "quantidade": 100,
+      "preco": 10
+    },
+    "branch": {
+      "nome": "Branch",
+      "categoria": "recurso",
+      "template_id": 10012,
+      "quantidade": 100,
+      "preco": 10
+    },
+    "bone": {
+      "nome": "Bone",
+      "categoria": "recurso",
+      "template_id": 10021,
+      "quantidade": 100,
+      "preco": 10
+    },
+    "dragonbone": {
+      "nome": "Dragonbone",
+      "categoria": "recurso",
+      "template_id": 10022,
+      "quantidade": 100,
+      "preco": 22
+    },
+    "dragonhorn": {
+      "nome": "Dragonhorn",
+      "categoria": "recurso",
+      "template_id": 10023,
+      "quantidade": 100,
+      "preco": 22
+    },
+    "iceshard": {
+      "nome": "Ice Shard",
+      "categoria": "recurso",
+      "template_id": 10024,
+      "quantidade": 100,
+      "preco": 16
+    },
+    "ancientobolus": {
+      "nome": "Ancient Obolus",
+      "categoria": "recurso",
+      "template_id": 10025,
+      "quantidade": 100,
+      "preco": 16
+    },
+    "foursideddie": {
+      "nome": "Four-Sided Die",
+      "categoria": "consumivel",
+      "template_id": 4220,
+      "quantidade": 5,
+      "preco": 42
+    },
+    "sixsideddie": {
+      "nome": "Six-Sided Die",
+      "categoria": "consumivel",
+      "template_id": 4221,
+      "quantidade": 5,
+      "preco": 60
+    },
+    "eightsideddie": {
+      "nome": "Eight-Sided Die",
+      "categoria": "consumivel",
+      "template_id": 4222,
+      "quantidade": 5,
+      "preco": 78
+    },
+    "tensideddie": {
+      "nome": "Ten-Sided Die",
+      "categoria": "consumivel",
+      "template_id": 4223,
+      "quantidade": 5,
+      "preco": 95
+    },
+    "twelvesideddie": {
+      "nome": "Twelve-Sided Die",
+      "categoria": "consumivel",
+      "template_id": 4224,
+      "quantidade": 5,
+      "preco": 95
+    },
+    "twentysideddie": {
+      "nome": "Twenty-Sided Die",
+      "categoria": "consumivel",
+      "template_id": 4225,
+      "quantidade": 5,
+      "preco": 95
+    },
+    "fleshmap": {
+      "nome": "Flesh Map",
+      "categoria": "consumivel",
+      "template_id": 10035,
+      "quantidade": 1,
+      "preco": 95
+    },
+    "fleshmap2": {
+      "nome": "Flesh Map",
+      "categoria": "consumivel",
+      "template_id": 10036,
+      "quantidade": 1,
+      "preco": 95
+    },
+    "potionofthehunt": {
+      "nome": "Potion of the Hunt",
+      "categoria": "consumivel",
+      "template_id": 10044,
+      "quantidade": 1,
+      "preco": 33
+    },
+    "hunterssatchel": {
+      "nome": "Hunter's Satchel",
+      "categoria": "consumivel",
+      "template_id": 10045,
+      "quantidade": 1,
+      "preco": 15
+    },
+    "scrollbestialregalia": {
+      "nome": "Scroll (Bestial Regalia)",
+      "categoria": "consumivel",
+      "template_id": 10067,
+      "quantidade": 1,
+      "preco": 15
+    },
+    "scrollferalclaws": {
+      "nome": "Scroll (Feral Claws)",
+      "categoria": "consumivel",
+      "template_id": 10068,
+      "quantidade": 1,
+      "preco": 15
+    },
+    "smeltedironsiegeboulder": {
+      "nome": "Smelted Iron Siege Boulder",
+      "categoria": "arma",
+      "template_id": 991,
+      "quantidade": 1,
+      "preco": 80
+    },
+    "salvagedstarmetalshell": {
+      "nome": "Salvaged Star Metal Shell",
+      "categoria": "arma",
+      "template_id": 992,
+      "quantidade": 1,
+      "preco": 80
+    },
+    "burningsiegeboulder": {
+      "nome": "Burning Siege Boulder",
+      "categoria": "arma",
+      "template_id": 993,
+      "quantidade": 1,
+      "preco": 80
+    },
+    "lance": {
+      "nome": "Lance",
+      "categoria": "arma",
+      "template_id": 2782,
+      "quantidade": 1,
+      "preco": 80
+    },
+    "reinforcedlance": {
+      "nome": "Reinforced Lance",
+      "categoria": "arma",
+      "template_id": 2783,
+      "quantidade": 1,
+      "preco": 80
+    },
+    "stronglance": {
+      "nome": "Strong Lance",
+      "categoria": "arma",
+      "template_id": 2785,
+      "quantidade": 1,
+      "preco": 128
+    },
+    "theglasser": {
+      "nome": "The Glasser",
+      "categoria": "arma",
+      "template_id": 4189,
+      "quantidade": 1,
+      "preco": 176
+    },
+    "reinforcedstool": {
+      "nome": "Reinforced Stool",
+      "categoria": "arma",
+      "template_id": 4190,
+      "quantidade": 1,
+      "preco": 176
+    },
+    "battlespatula": {
+      "nome": "Battle Spatula",
+      "categoria": "arma",
+      "template_id": 4192,
+      "quantidade": 1,
+      "preco": 176
+    },
+    "deadleg": {
+      "nome": "Dead Leg",
+      "categoria": "arma",
+      "template_id": 4193,
+      "quantidade": 1,
+      "preco": 176
+    },
+    "tableleg": {
+      "nome": "Table Leg",
+      "categoria": "arma",
+      "template_id": 4194,
+      "quantidade": 1,
+      "preco": 176
+    },
+    "practicesword": {
+      "nome": "Practice Sword",
+      "categoria": "arma",
+      "template_id": 4195,
+      "quantidade": 1,
+      "preco": 80
+    },
+    "helmofthemadprophet": {
+      "nome": "Helm of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1607,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "harnessofthemadprophet": {
+      "nome": "Harness of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1608,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "bracerofthemadprophet": {
+      "nome": "Bracer of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1609,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "tassetofthemadprophet": {
+      "nome": "Tasset of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1610,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "sandalsofthemadprophet": {
+      "nome": "Sandals of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1611,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "helmofthemadprophet2": {
+      "nome": "Helm of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1612,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "harnessofthemadprophet2": {
+      "nome": "Harness of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1613,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "bracerofthemadprophet2": {
+      "nome": "Bracer of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1614,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "tassetofthemadprophet2": {
+      "nome": "Tasset of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1615,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "sandalsofthemadprophet2": {
+      "nome": "Sandals of the Mad Prophet",
+      "categoria": "armadura",
+      "template_id": 1616,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "aquilonianscoutsaddle": {
+      "nome": "Aquilonian Scout Saddle",
+      "categoria": "armadura",
+      "template_id": 2706,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "savagecavalrysaddle": {
+      "nome": "Savage Cavalry Saddle",
+      "categoria": "armadura",
+      "template_id": 2707,
+      "quantidade": 1,
+      "preco": 70
+    },
+    "deadwomanstresses": {
+      "nome": "Dead Woman's Tresses",
+      "categoria": "ferramenta",
+      "template_id": 10096,
+      "quantidade": 1,
+      "preco": 40
+    },
+    "reliablebutcher": {
+      "nome": "Reliable Butcher",
+      "categoria": "ferramenta",
+      "template_id": 24127,
+      "quantidade": 1,
+      "preco": 136
+    },
+    "hangmansbindings": {
+      "nome": "Hangman's Bindings",
+      "categoria": "ferramenta",
+      "template_id": 24134,
+      "quantidade": 1,
+      "preco": 40
+    },
+    "steelcleaver": {
+      "nome": "Steel Cleaver",
+      "categoria": "ferramenta",
+      "template_id": 41028,
+      "quantidade": 1,
+      "preco": 88
+    },
+    "hardenedsteelcleaver": {
+      "nome": "Hardened Steel Cleaver",
+      "categoria": "ferramenta",
+      "template_id": 41029,
+      "quantidade": 1,
+      "preco": 112
+    },
+    "starmetalcleaver": {
+      "nome": "Star Metal Cleaver",
+      "categoria": "ferramenta",
+      "template_id": 41030,
+      "quantidade": 1,
+      "preco": 112
+    },
+    "improvisedtorch": {
+      "nome": "Improvised Torch",
+      "categoria": "ferramenta",
+      "template_id": 41031,
+      "quantidade": 1,
+      "preco": 40
+    },
+    "torch": {
+      "nome": "Torch",
+      "categoria": "ferramenta",
+      "template_id": 41033,
+      "quantidade": 1,
+      "preco": 64
+    },
+    "stonecleaver": {
+      "nome": "Stone Cleaver",
+      "categoria": "ferramenta",
+      "template_id": 41034,
+      "quantidade": 1,
+      "preco": 40
+    },
+    "glowingstick": {
+      "nome": "Glowing Stick",
+      "categoria": "ferramenta",
+      "template_id": 41035,
+      "quantidade": 1,
+      "preco": 64
+    },
+    "ironcleaver": {
+      "nome": "Iron Cleaver",
+      "categoria": "ferramenta",
+      "template_id": 41036,
+      "quantidade": 1,
+      "preco": 64
+    },
+    "mawofthehyena": {
+      "nome": "Maw of the Hyena",
+      "categoria": "ferramenta",
+      "template_id": 41039,
+      "quantidade": 1,
+      "preco": 40
+    },
+    "kharisteel": {
+      "nome": "Khari Steel",
+      "categoria": "componente",
+      "template_id": 10020,
+      "quantidade": 20,
+      "preco": 32
+    },
+    "charcoal": {
+      "nome": "Charcoal",
+      "categoria": "componente",
+      "template_id": 10999,
+      "quantidade": 20,
+      "preco": 32
+    },
+    "goldbar": {
+      "nome": "Gold Bar",
+      "categoria": "componente",
+      "template_id": 11054,
+      "quantidade": 20,
+      "preco": 44
+    },
+    "silverbar": {
+      "nome": "Silver Bar",
+      "categoria": "componente",
+      "template_id": 11055,
+      "quantidade": 20,
+      "preco": 32
+    },
+    "alchemicalbase": {
+      "nome": "Alchemical Base",
+      "categoria": "componente",
+      "template_id": 11070,
+      "quantidade": 20,
+      "preco": 44
+    },
+    "compost": {
+      "nome": "Compost",
+      "categoria": "componente",
+      "template_id": 11076,
+      "quantidade": 20,
+      "preco": 32
+    },
+    "potentcompost": {
+      "nome": "Potent Compost",
+      "categoria": "componente",
+      "template_id": 11077,
+      "quantidade": 20,
+      "preco": 44
+    },
+    "bonemeal": {
+      "nome": "Bonemeal",
+      "categoria": "componente",
+      "template_id": 11078,
+      "quantidade": 20,
+      "preco": 20
+    },
+    "insulatedwood": {
+      "nome": "Insulated Wood",
+      "categoria": "componente",
+      "template_id": 11108,
+      "quantidade": 20,
+      "preco": 32
+    },
+    "armorscraps": {
+      "nome": "Armor Scraps",
+      "categoria": "componente",
+      "template_id": 11112,
+      "quantidade": 20,
+      "preco": 44
+    },
+    "weaponhandle": {
+      "nome": "Weapon Handle",
+      "categoria": "componente",
+      "template_id": 11114,
+      "quantidade": 20,
+      "preco": 44
+    },
+    "shieldframe": {
+      "nome": "Shield Frame",
+      "categoria": "componente",
+      "template_id": 11116,
+      "quantidade": 20,
+      "preco": 44
+    },
+    "siegefoundation": {
+      "nome": "Siege Foundation",
+      "categoria": "construcao",
+      "template_id": 89801,
+      "quantidade": 1,
+      "preco": 15
+    },
+    "siegeweaponbase": {
+      "nome": "Siege Weapon Base",
+      "categoria": "construcao",
+      "template_id": 89811,
+      "quantidade": 1,
+      "preco": 24
+    },
+    "trebuchetframe": {
+      "nome": "Trebuchet Frame",
+      "categoria": "construcao",
+      "template_id": 89812,
+      "quantidade": 1,
+      "preco": 24
+    },
+    "trebuchet": {
+      "nome": "Trebuchet",
+      "categoria": "construcao",
+      "template_id": 89813,
+      "quantidade": 1,
+      "preco": 24
+    },
+    "ballista": {
+      "nome": "Ballista",
+      "categoria": "construcao",
+      "template_id": 89814,
+      "quantidade": 1,
+      "preco": 24
+    },
+    "maproom": {
+      "nome": "Map-Room",
+      "categoria": "construcao",
+      "template_id": 90000,
+      "quantidade": 1,
+      "preco": 33
+    },
+    "sandstonefoundation": {
+      "nome": "Sandstone Foundation",
+      "categoria": "construcao",
+      "template_id": 90001,
+      "quantidade": 10,
+      "preco": 15
+    },
+    "sandstonewall": {
+      "nome": "Sandstone Wall",
+      "categoria": "construcao",
+      "template_id": 90002,
+      "quantidade": 10,
+      "preco": 15
+    },
+    "sandstoneceiling": {
+      "nome": "Sandstone Ceiling",
+      "categoria": "construcao",
+      "template_id": 90003,
+      "quantidade": 10,
+      "preco": 15
+    },
+    "sandstonedoorframe": {
+      "nome": "Sandstone Doorframe",
+      "categoria": "construcao",
+      "template_id": 90004,
+      "quantidade": 10,
+      "preco": 15
+    },
+    "sandstonestairs": {
+      "nome": "Sandstone Stairs",
+      "categoria": "construcao",
+      "template_id": 90005,
+      "quantidade": 10,
+      "preco": 15
+    },
+    "sandstonewedge": {
+      "nome": "Sandstone Wedge",
+      "categoria": "construcao",
+      "template_id": 90006,
+      "quantidade": 10,
+      "preco": 15
+    },
+    "altarofjhebbalsag": {
+      "nome": "Altar of Jhebbal Sag",
+      "categoria": "bancada",
+      "template_id": 10065,
+      "quantidade": 1,
+      "preco": 204
+    },
+    "liufeiscircleofpower": {
+      "nome": "Liu Fei's Circle of Power",
+      "categoria": "bancada",
+      "template_id": 10112,
+      "quantidade": 1,
+      "preco": 96
+    },
+    "beehive": {
+      "nome": "Beehive",
+      "categoria": "bancada",
+      "template_id": 18500,
+      "quantidade": 1,
+      "preco": 96
+    },
+    "improvedbeehive": {
+      "nome": "Improved Beehive",
+      "categoria": "bancada",
+      "template_id": 18501,
+      "quantidade": 1,
+      "preco": 132
+    },
+    "fishtrap": {
+      "nome": "Fish Trap",
+      "categoria": "bancada",
+      "template_id": 18502,
+      "quantidade": 1,
+      "preco": 60
+    },
+    "shellfishtrap": {
+      "nome": "Shellfish Trap",
+      "categoria": "bancada",
+      "template_id": 18503,
+      "quantidade": 1,
+      "preco": 60
+    },
+    "fermentationbarrel": {
+      "nome": "Fermentation Barrel",
+      "categoria": "bancada",
+      "template_id": 18504,
+      "quantidade": 1,
+      "preco": 96
+    },
+    "fluidpress": {
+      "nome": "Fluid Press",
+      "categoria": "bancada",
+      "template_id": 18505,
+      "quantidade": 1,
+      "preco": 96
+    },
+    "dryer": {
+      "nome": "Dryer",
+      "categoria": "bancada",
+      "template_id": 18506,
+      "quantidade": 1,
+      "preco": 96
+    },
+    "stove": {
+      "nome": "Stove",
+      "categoria": "bancada",
+      "template_id": 18509,
+      "quantidade": 1,
+      "preco": 132
+    },
+    "grinder": {
+      "nome": "Grinder",
+      "categoria": "bancada",
+      "template_id": 18510,
+      "quantidade": 1,
+      "preco": 96
+    },
+    "artisantable": {
+      "nome": "Artisan Table",
+      "categoria": "bancada",
+      "template_id": 18512,
+      "quantidade": 1,
+      "preco": 60
+    },
+    "camel": {
+      "nome": "Camel",
+      "categoria": "montaria",
+      "template_id": 2715,
+      "quantidade": 1,
+      "preco": 340
+    },
+    "savagehorn": {
+      "nome": "Savage Horn",
+      "categoria": "montaria",
+      "template_id": 10037,
+      "quantidade": 1,
+      "preco": 340
+    },
+    "werehyenahunter": {
+      "nome": "Werehyena Hunter",
+      "categoria": "montaria",
+      "template_id": 10061,
+      "quantidade": 1,
+      "preco": 340
+    },
+    "turtlehatchling": {
+      "nome": "Turtle Hatchling",
+      "categoria": "montaria",
+      "template_id": 18262,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "sturdyfoal": {
+      "nome": "Sturdy Foal",
+      "categoria": "montaria",
+      "template_id": 18994,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "swiftfoal": {
+      "nome": "Swift Foal",
+      "categoria": "montaria",
+      "template_id": 18995,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "foal": {
+      "nome": "Foal",
+      "categoria": "montaria",
+      "template_id": 18996,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "scorpioneggsac": {
+      "nome": "Scorpion Egg-sac",
+      "categoria": "montaria",
+      "template_id": 18998,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "snakeegg": {
+      "nome": "Snake Egg",
+      "categoria": "montaria",
+      "template_id": 19007,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "scorpionhatchling": {
+      "nome": "Scorpion Hatchling",
+      "categoria": "montaria",
+      "template_id": 19008,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "elephantcalf": {
+      "nome": "Elephant Calf",
+      "categoria": "montaria",
+      "template_id": 19009,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "bearcub": {
+      "nome": "Bear Cub",
+      "categoria": "montaria",
+      "template_id": 19010,
+      "quantidade": 1,
+      "preco": 100
+    },
+    "compass": {
+      "nome": "Compass",
+      "categoria": "utilidade",
+      "template_id": 11154,
+      "quantidade": 1,
+      "preco": 32
+    },
+    "simplearmorrepairkit": {
+      "nome": "Simple Armor Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41020,
+      "quantidade": 1,
+      "preco": 20
+    },
+    "armorrepairkit": {
+      "nome": "Armor Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41021,
+      "quantidade": 1,
+      "preco": 32
+    },
+    "advancedarmorrepairkit": {
+      "nome": "Advanced Armor Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41022,
+      "quantidade": 1,
+      "preco": 44
+    },
+    "masterarmorrepairkit": {
+      "nome": "Master Armor Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41023,
+      "quantidade": 1,
+      "preco": 56
+    },
+    "simpleweaponrepairkit": {
+      "nome": "Simple Weapon Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41024,
+      "quantidade": 1,
+      "preco": 20
+    },
+    "weaponrepairkit": {
+      "nome": "Weapon Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41025,
+      "quantidade": 1,
+      "preco": 32
+    },
+    "advancedweaponrepairkit": {
+      "nome": "Advanced Weapon Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41026,
+      "quantidade": 1,
+      "preco": 44
+    },
+    "masterweaponrepairkit": {
+      "nome": "Master Weapon Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41027,
+      "quantidade": 1,
+      "preco": 56
+    },
+    "grandmasterweaponrepairk": {
+      "nome": "Grandmaster Weapon Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41037,
+      "quantidade": 1,
+      "preco": 68
+    },
+    "grandmasterarmorrepairki": {
+      "nome": "Grandmaster Armor Repair Kit",
+      "categoria": "utilidade",
+      "template_id": 41040,
+      "quantidade": 1,
+      "preco": 68
+    },
+    "loctablegamesystemsdialo": {
+      "nome": "LOCTABLE(\"/Game/Systems/Dialogue_Akhamet/ST_Dungeon_AnvilGK_Items.ST_Dungeon_AnvilGK_Items\", \"Anvil_GK_Dungeon_Legendary FragmentName\")",
+      "categoria": "utilidade",
+      "template_id": 41042,
+      "quantidade": 1,
+      "preco": 68
+    }
+  }
+}

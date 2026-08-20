@@ -1,12 +1,36 @@
 # Começar — seu primeiro plugin
 
-Você precisa de: o compilador cruzado do MinGW e um servidor de Conan Exiles
-Enhanced. Não precisa de Visual Studio, nem do editor da Unreal, nem de conta de
-desenvolvedor.
+*Tradução. O documento principal é o [GETTING-STARTED.md](GETTING-STARTED.md), em inglês.*
+
+Você precisa de: um compilador C++ que gere DLL de 64 bits para Windows, e um
+servidor de Conan Exiles Enhanced. Não precisa do editor da Unreal nem de conta
+de desenvolvedor.
+
+Quase todo mundo que faz isso está no Windows, então comece por lá:
+
+**Visual Studio 2017, 2019 ou 2022** (a edição Community, gratuita, basta).
+Instale a carga de trabalho "Desenvolvimento para desktop com C++". Novo projeto
+→ **Biblioteca de Vínculo Dinâmico (DLL)**, plataforma **x64**, e ponha
+*C/C++ → Geração de Código → Biblioteca de Runtime* em **/MT**.
+
+Esse último ajuste importa mais do que parece. Com **/MD** a sua DLL depende de
+o redistribuível do Visual C++ estar instalado na máquina que roda o servidor —
+e essa máquina costuma ser uma VPS alugada, ou um contêiner sob Wine, onde ele
+não está. O sintoma é o `LoadLibrary` falhando com um código genérico que não
+explica nada. Com **/MT** o runtime entra no binário e a pergunta nem existe.
+
+**x64 não é opcional**: DLL de 32 bits simplesmente não carrega.
+
+Se preferir compilar de um Linux ou do WSL, o mingw-w64 faz o mesmo serviço:
 
 ```bash
 sudo apt-get install -y mingw-w64        # Debian/Ubuntu
 ```
+
+Toda pasta de exemplo traz **os dois**: um `compilar.bat` para Windows, que acha
+o `cl.exe` ou o `g++` e compila, e um `compilar.sh` para Linux e WSL. No Windows,
+abra o *Prompt de Comando do Desenvolvedor x64 para VS* pelo menu Iniciar, entre
+na pasta do exemplo e rode o `compilar.bat`.
 
 ---
 
@@ -36,7 +60,7 @@ o que você baixou/
 
 Não precisa compilar nada para instalar. A `winmm.dll` vem compilada e conferida: o `VERSAO.txt` traz o sha256 dela, e o
 log do carregador diz qual versão subiu. O que ela faz por dentro está descrito
-em `Docs/LEIA-ME.md` — em português, sem precisar ler código.
+em `Docs/LEIA-ME.pt.md` — em português, sem precisar ler código.
 
 **Não pule esta parte.** Sem a `winmm.dll` no lugar certo, o servidor sobe
 normalmente, sem plugin nenhum e **sem nenhuma mensagem de erro** — a falha mais

@@ -1,0 +1,8 @@
+{
+  "FullName":      "Conan Shop",
+  "Description":   "Loja por pontos: o jogador ganha pontos por tempo online (com valor por grupo VIP) e compra itens pelo chat. Banco local ou MySQL.",
+  "Version":       "1.0.0",
+  "MinApiVersion": 2,
+  "ResourceId":    -1,
+  "Dependencies":  ["Permission"]
+}

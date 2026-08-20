@@ -1,5 +1,7 @@
 # Conan-Api — plugins no seu servidor
 
+*Tradução. O documento principal é o [README-PACKAGE.md](README-PACKAGE.md), em inglês.*
+
 Este é o pacote do **servidor**: ele faz plugin funcionar. Você não precisa de
 compilador, nem de header, nem de nada além do que está aqui dentro.
 
