@@ -1,190 +1,435 @@
 <p align="center">
-  <img src=".github/imagens/conan-header.jpg" alt="Conan Exiles Enhanced">
+  <img src=".github/imagens/conan-header.jpg" alt="Conan Exiles Enhanced dedicated server running native server-side plugins">
 </p>
 
 <p align="center">
-  <a href="README.md"><img src=".github/imagens/bandeiras/br.png" alt="Portugues" height="13">&nbsp;<b>Portugu&ecirc;s</b></a>
+  <a href="README.md"><img src=".github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;<b>English</b></a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="doc/README.en.md"><img src=".github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
+  <a href="doc/README.pt.md"><img src=".github/imagens/bandeiras/br.png" alt="Portugu&ecirc;s" height="13">&nbsp;Portugu&ecirc;s</a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="doc/README.es.md"><img src=".github/imagens/bandeiras/es.png" alt="Espanol" height="13">&nbsp;Espa&ntilde;ol</a>
+  <a href="doc/README.es.md"><img src=".github/imagens/bandeiras/es.png" alt="Espa&ntilde;ol" height="13">&nbsp;Espa&ntilde;ol</a>
 </p>
 
-# Conan-Api — plugins no seu servidor de Conan Exiles
 
-O servidor dedicado do Conan Exiles não tem sistema de plugins. Não existe uma
-pasta onde você joga um arquivo e ganha um recurso novo. Se você quer um `!kit`,
-um sistema de VIP ou um teleporte, a resposta do jogo é simplesmente que isso
-não existe.
+# Conan-Api — native server-side plugin framework for Conan Exiles Enhanced
 
-**É esse buraco que esta API preenche.** Você copia dois itens para a pasta do
-servidor, uma vez. A partir daí, instalar um plugin é arrastar uma pasta.
+**Conan-Api is an open-source, server-side plugin framework and C++ SDK for
+privately operated Conan Exiles Enhanced dedicated servers.** It runs inside the
+dedicated server process, on hardware the server administrator controls, and
+lets that administrator extend what the *server* does — permissions, VIP tiers,
+economy and shops, teleports, administration tooling, scheduled events.
 
-Se você já administrou servidor de ARK ou de ASA, é a mesma ideia do **ArkApi**
-e do **AsaApi**, agora para Conan Exiles.
+Players connect with an unmodified game client. Nothing is downloaded, nothing
+is subscribed to on the Workshop, and no client file is touched.
 
-### "Mas já existe mod para isso"
-
-Existe, e a diferença é uma só — mas ela decide tudo:
-
-| | mod | plugin |
-|---|---|---|
-| o jogador precisa baixar | **sim** | não |
-| aparece na lista do Workshop | sim | — |
-| "não consigo entrar, falta mod" | acontece | não existe |
-| atualiza quando o autor publica | o jogador tem que sincronizar | só você |
-| quem instala | você **e** cada jogador | só você |
-
-Um plugin roda **inteiro no servidor**. O jogador entra com o cliente limpo, sem
-subscrição, sem sincronizar nada, sem descobrir na hora de entrar que falta um
-arquivo. Para um servidor que quer jogador casual, isso é a diferença entre
-alguém entrar e alguém desistir na tela de download.
-
-O preço é que plugin não muda o que o cliente **desenha** — modelo novo, item
-novo com arte própria, mapa. Isso continua sendo trabalho de mod. Plugin muda o
-que o servidor **faz**: comandos, regras, economia, permissões, eventos.
-
-```
-Conan-Api/
-   Plugins/
-      Permission/            <- já vem junto: controla VIP e permissões
-      LojaDoFulano/          <- você arrastou esta aqui
-      TeleporteDoBeltrano/   <- e esta
-```
-
-Sem arquivo de configuração para editar. Sem lista para preencher. Sem comando
-para rodar. **A pasta estar ali é a instalação.** Apagar a pasta é a
-desinstalação.
+If you have run an ARK or ASA server, this is the same model as **ArkApi** and
+**AsaApi**, for Conan Exiles.
 
 ---
 
-## O que dá para ter no seu servidor
+## Quick answers
 
-A API não faz nada sozinha — ela abre a porta para que outras pessoas escrevam
-coisas. O que já é possível hoje, e está provado funcionando:
+If you are evaluating this project — as a moderator, a community admin, or
+someone who saw "DLL" and wanted to check — these are the six questions that
+usually come first, answered directly.
 
-| o que o plugin faz | como o jogador usa |
+**Does this run only on a dedicated server the owner administers?**
+Yes. It runs inside `ConanSandboxServer-Win64-Shipping.exe`, on the machine the
+server operator controls, from files that operator placed there. There is no
+component that runs anywhere else.
+
+**Does it touch the game client?**
+No. Nothing is installed, downloaded or patched on any player's machine. Players
+connect with an unmodified client and are not required to subscribe to anything
+on the Workshop. There is no client-side code in this project.
+
+**Does it interact with official Funcom servers?**
+No. It is loaded by a dedicated server binary that the operator starts on their
+own host. It has no functionality directed at servers operated by Funcom, and
+nothing here connects to them.
+
+**Does it try to bypass anti-cheat?**
+No. There is no anti-cheat interaction, detection-avoidance, obfuscation or
+tampering of any kind in this project, and none is documented or supported. The
+loader announces itself in its own log file on every start.
+
+**How is the DLL loaded?**
+By **DLL proxying** — also called import forwarding or side-loading. The
+administrator renames the Windows `winmm.dll` already present in the server's
+binary folder to `winmm_orig.dll` and puts ours in its place; ours forwards every
+exported call to the renamed original and initialises the plugin runtime
+alongside it. It is the same mechanism **ArkApi** and **AsaApi** use. Full
+step-by-step, including what happens at startup and shutdown, is in
+[How the API enters the server process](#how-the-api-enters-the-server-process).
+
+It does **not** attach to a process it does not own, and does not use
+`CreateRemoteThread` or comparable remote-injection APIs against third-party
+processes.
+
+**What privileges does a plugin get?**
+Full process privileges — the same as the dedicated server itself. A native
+plugin can read and modify server memory, see player identity data, read and
+write any file the server user can reach, open network connections, and crash
+the process. There is no sandbox between plugins, and there will not be one.
+
+That is a property of native plugins in any game, not a choice this project
+made, and it is stated in full under
+[Security and trust model](#security-and-trust-model) rather than left for
+someone to discover. The practical guidance is the same as for any native server
+extension: install what you trust, prefer plugins that publish source.
+
+---
+
+## Scope and intended use
+
+This project is built for **people who operate their own dedicated server** and
+want to extend it.
+
+**In scope**
+
+- Privately operated Conan Exiles Enhanced dedicated servers
+- Server owners and administrators running their own hardware or rented host
+- Development of native, server-side plugins: permissions, VIP, economy, shops,
+  teleports, administration, scheduled events, integrations with external systems
+
+**Out of scope — this project is not built for, and not documented for**
+
+- Official Funcom-operated servers
+- Modifying, patching or interfering with another player's game client
+- Gaining an advantage over other players in multiplayer
+- Bypassing or interfering with anti-cheat
+- Obtaining credentials, or access to systems the operator does not own
+
+This is a statement of the project's **purpose and design intent**. It is not a
+legal opinion, and it is not a claim about what is technically impossible: a
+native plugin runs with full process privileges, which is exactly why the
+[Security and trust model](#security-and-trust-model) below is stated plainly
+rather than buried.
+
+Everything here assumes you are the operator of the server you are installing
+on, and that installing software on it is your decision to make.
+
+---
+
+## How it works
+
+```
+Conan Exiles Enhanced dedicated server  (ConanSandboxServer-Win64-Shipping.exe)
+        │
+        ▼
+Conan-Api runtime layer          loads at process start, resolves the build,
+        │                        owns hooks and the game-thread scheduler
+        ▼
+ABI function table  +  C++ SDK   a plain-C table plugins call through;
+        │                        header-only C++ wrappers over the same table
+        ▼
+Native server plugins            ordinary Windows DLLs in Plugins/<Name>/
+        │
+        ▼
+Permission · Conan Shop · yours
+```
+
+**Dedicated server process.** Everything happens inside
+`ConanSandboxServer-Win64-Shipping.exe`, on the machine the administrator runs.
+There is no client-side component.
+
+**Runtime layer.** Loaded at process start. It verifies the game build before
+doing anything else, resolves the engine structures it needs from the running
+process, installs its `ProcessEvent` hook, and elects the game thread so that
+plugin work is scheduled onto it rather than run from arbitrary threads.
+
+**ABI table and SDK.** Plugins never link against our code. They receive a
+pointer to a plain-C struct of function pointers — the ABI table — which is why
+a plugin built with MSVC and one built with MinGW both work. The C++ SDK is a
+header-only convenience layer that routes to the same table.
+
+**Plugins.** Ordinary DLLs, one folder each, each with a `PluginInfo.json`
+declaring its name, version and the minimum API version it needs.
+
+---
+
+## How the API enters the server process
+
+This section is deliberately explicit. The mechanism is a normal one for this
+class of tool, and stating it precisely is more useful to everyone than a vague
+reassurance.
+
+**The mechanism is DLL proxying (also called import forwarding or DLL
+side-loading).** It is the same technique **ArkApi** and **AsaApi** use, and the
+same one ReShade and similar tooling use.
+
+Concretely:
+
+1. The administrator stops the server.
+2. In `<server>\ConanSandbox\Binaries\Win64\`, the administrator renames the
+   Windows `winmm.dll` that is already there to `winmm_orig.dll`.
+3. The administrator copies our `winmm.dll` and the `Conan-Api\` folder into the
+   same directory.
+4. On the next start, Windows resolves `winmm.dll` from the executable's own
+   directory before the system directory, so the server loads ours.
+5. Our DLL **forwards every exported call to the renamed original**, so the game
+   loses no functionality. Alongside that, it initialises the Conan-Api runtime.
+6. The runtime verifies the game build. If the build is not one it has been
+   validated against, **it refuses to load and says so in the log** — see
+   [Build compatibility](#build-compatibility).
+7. Once the world is up, the runtime scans `Conan-Api\Plugins\`, reads each
+   plugin's `PluginInfo.json`, resolves declared dependencies, and calls each
+   plugin's entry point.
+8. At shutdown, plugins are unloaded and forwarded calls stop.
+
+**What this is:** in-process loading, inside a process the administrator starts,
+on a machine the administrator controls, from files the administrator placed
+there deliberately.
+
+**What this is not:** it does not attach to a process it does not own, does not
+use `CreateRemoteThread` or comparable remote-injection APIs against third-party
+processes, does not touch the game client, and does not run on any machine other
+than the server host.
+
+**Files involved:** `winmm.dll` (ours), `winmm_orig.dll` (Windows', renamed by
+the administrator), and everything under `Conan-Api\`.
+
+Full installation steps, including the failure modes, are in
+[Install](#install--five-minutes-once).
+
+---
+
+## Runtime reflection
+
+The API does not hardcode field offsets into plugins. It reads the engine's own
+reflection data from the running process to find classes, functions, properties
+and their types, and calls game functions **by name**.
+
+Measured on build **`24784646`**, with the world loaded:
+
+| | measured |
 |---|---|
-| **comandos no chat** | ele digita `!kit`, `!online`, `!loja` e o plugin responde |
-| **mensagem na tela** | aparece por cima da tela dele, sem passar pelo chat |
-| **aviso para todos** | uma linha que chega a todo mundo conectado ao mesmo tempo |
-| **reagir a eventos** | alguém entrou, morreu, coletou madeira, matou um NPC |
-| **VIP e permissões** | quem pode o quê, com grupos, guardado em banco |
-| **ler e mudar o mundo** | posição de um jogador, item no inventário, estado de um objeto |
+| Conan classes visible through reflection | **9,247** |
+| reflected functions | **38,340** |
+| of those, with a complete typed signature | **~89%** |
+| class members catalogued | **36,210** |
+| of those, replicated | **1,222** |
 
-Uma loja que vende itens pelo chat, um teleporte com pontos salvos, boas-vindas
-personalizadas, kit diário só para VIP, aviso automático antes do restart — tudo
-isso é escrito **por cima** desta API, por quem quiser.
+These are measurements of one specific build, reproducible with the tools in the
+[SDK](https://github.com/andrew-mauricio/Conan-Api-SDK). They are not a guarantee about future builds:
+when Funcom ships a new one, the catalogue has to be re-collected, and the
+numbers will differ.
 
-O que existe hoje pronto é o **Permission**, que vem no pacote. O resto virá da
-comunidade, e é para isso que o [SDK](../../../Conan-Api-SDK) existe.
-
----
-
-## Antes de instalar qualquer coisa: leia isto
-
-Um plugin é uma DLL que roda **dentro do processo do servidor**, com os mesmos
-poderes que ele. Isso não é limitação desta API — é o que "plugin nativo"
-significa em qualquer jogo. Mas você precisa saber antes, e em letra grande:
-
-**Um plugin instalado pode** ler e alterar qualquer coisa na memória do
-servidor, ver os dados de identidade dos seus jogadores, escrever qualquer
-arquivo que o servidor alcance, abrir conexão de rede e derrubar o servidor.
-
-**A API segura** falha de plugin ao carregar (o servidor sobe sem ele), erro
-dentro de um hook na maioria dos casos, erro em tarefa que o plugin agendou para
-depois (ele entra em quarentena e o servidor segue), e conflito entre dois
-plugins.
-
-**A API não segura** plugin malicioso. Não existe sandbox, e não vai existir.
-
-Trate plugin como você trataria qualquer programa que instala no seu servidor:
-de quem você confia, de preferência com o código à vista.
+The remaining ~11% are emitted as untyped generic templates on purpose. They are
+types that carry ownership of engine memory (`TArray<FString>`, `TMap`,
+multicast delegates); passing them by value across the ABI would duplicate
+pointers and risk a double free. A generic template that will not compile by
+accident is preferable to a signature that corrupts memory.
 
 ---
 
-## Instalar — cinco minutos, uma vez só
+## Security and trust model
 
-Baixe o pacote em [Releases](../../releases). Vêm dois itens:
+A native server plugin is a DLL that runs **inside the server process, with the
+same privileges as that process**. That is not a limitation of this API — it is
+what "native plugin" means in any game. It is stated here, in full, because an
+administrator deciding what to install needs it before anything else.
+
+**An installed plugin can** read and modify anything in the server's memory, see
+player identity data, read and write any file the server user can reach, open
+network connections, and crash the process.
+
+**The API does contain**: a plugin that fails during load (the server comes up
+without it), an error inside a hook in most cases, an error in work the plugin
+scheduled for later (that plugin is quarantined and the server carries on), and
+ordering conflicts between plugins.
+
+**The API does not contain a malicious plugin.** There is no sandbox between
+plugins, and there will not be one — plugins share the process, so any plugin
+can reach any other plugin's data, including the permissions database. Isolation
+of that kind would require running plugins out-of-process, which is a different
+architecture.
+
+Practical consequence: **treat a third-party plugin exactly as you would treat
+any other native extension you install on a server you own** — install what you
+trust, prefer plugins that publish source, and audit before deploying to a
+server with players on it.
+
+---
+
+## Build compatibility
+
+The API is validated against a specific game build and **refuses to load on a
+build it does not recognise**, deliberately, with the reason in the log.
+
+Validated build: **`24784646`** (Conan Exiles Enhanced, UE 5.6.1).
+
+Refusing is the point. The API locates engine structures in a specific version's
+memory layout; when Funcom updates, those move. An API that loaded anyway would
+read the wrong memory and return values that **look correct and are not** — VIP
+silently disappearing, permissions inverted — with nothing in any log connecting
+it to the game update. A server that will not come up with plugins is preferable
+to a server that comes up lying.
+
+Adapting the runtime to a new build is a maintained process on our side, and it
+is not something a plugin author or an administrator has to do. Recognising a
+build, and refusing an unrecognised one, is what the shipped runtime does; the
+tooling that produces a new supported build is maintained separately and is not
+part of the public distribution.
+
+What matters on your side is the behaviour: an unvalidated build does not load,
+and it says so.
+
+**Plugins that hardcode raw offsets** are the one case that survives an update
+and starts reading the wrong place *without any error*. A plugin author can
+declare that dependency in their `PluginInfo.json`, and the loader will then
+refuse that plugin on an unvalidated build instead of letting it run with wrong
+data.
+
+> **Honest limitation:** every version published so far targets the same build
+> (`24784646`). The recovery mechanism has been tested against an executable we
+> modified on purpose, but **never against a real Funcom update**. When the first
+> one lands, this section gets a measured turnaround time instead of this
+> sentence.
+
+---
+
+## What is open, and what is not
+
+This project draws a deliberate line, and it is worth stating plainly so nobody
+has to guess.
+
+**Open and auditable — everything that affects your server**
+
+| | where |
+|---|---|
+| the plugin ABI and every public header | [SDK](https://github.com/andrew-mauricio/Conan-Api-SDK) `include/Conan/` |
+| the complete list of functions the API exposes to plugins | `ConanPluginApi.h` |
+| how the loader enters the process, step by step | this README |
+| the trust model, and what a plugin can reach | this README |
+| plugin examples, with source | SDK `Exemplos/` |
+| the Permission plugin, with source | SDK `Exemplos/Permission/` |
+| a complete real plugin, with source and tests | [Conan-Shop](https://github.com/andrew-mauricio/Conan-Shop) |
+| SHA-256 of every published binary | each release's notes |
+
+If you are deciding whether to run this on your server, or reviewing it for a
+community, everything you need is in that list. You can read the entire surface
+that touches your machine, and verify that the binary you downloaded was built
+from the source that is published.
+
+**Not published — the engineering that produced the API**
+
+The tooling that discovers engine structures, resolves them without debug
+symbols, generates the typed SDK, and adapts the runtime to a new game build is
+maintained privately. That is the work that took the longest and is what
+distinguishes this project.
+
+Withholding it changes nothing about your ability to audit what runs on your
+server: that tooling does not ship, does not execute on your machine, and is not
+part of any release. What ships is the runtime, the headers, and the plugins —
+all listed above.
+
+---
+
+## Built on this API
+
+**[Conan Shop](https://github.com/andrew-mauricio/Conan-Shop)** is a complete plugin built on Conan-Api,
+and doubles as the reference for what the architecture supports in practice:
+chat hooks and command routing, player identification, permission checks, timed
+rewards on the game thread, SQLite or MySQL storage, atomic point debiting, item
+delivery by Template ID, in-game message-box interaction, and the full plugin
+lifecycle including hot reload of its own configuration.
+
+**Permission** ships in this package and provides groups, VIP tiers with
+expiry, and stable player identity that other plugins consume through a small C
+ABI.
+
+---
+
+## What you can have on your server
+
+The API does nothing on its own — it opens the door for other people to write
+things. What is possible today, and proven working:
+
+| what a plugin does | how the player uses it |
+|---|---|
+| **chat commands** | they type `!kit`, `!online`, `!shop` and the plugin answers |
+| **on-screen message** | it appears over their screen, never touching chat |
+| **broadcast** | one line that reaches everyone connected at the same time |
+| **react to events** | someone joined, died, harvested wood, killed an NPC |
+| **VIP and permissions** | who can do what, with groups, stored in a database |
+| **read and change the world** | a player's position, an item in an inventory, an object's state |
+
+A shop that sells items through chat, a teleport with saved points, custom
+welcome messages, a daily kit for VIPs only, an automatic warning before restart
+— all of that is written **on top of** this API, by anyone who wants to.
+
+What exists ready today is **Permission**, which ships in the package. The rest
+will come from the community, and that is what the
+[SDK](https://github.com/andrew-mauricio/Conan-Api-SDK) is for.
+
+---
+
+## Install — five minutes, once
+
+Download the package from [Releases](../../releases). Two items come in it:
 
 ```
-winmm.dll      o carregador. Sem ele, nada acontece.
-Conan-Api/     a pasta com tudo dentro
+winmm.dll      the loader. Without it, nothing happens.
+Conan-Api/     the folder with everything inside
 ```
 
-**1.** Pare o servidor.
+**1.** Stop the server.
 
-**2.** Vá até a pasta do executável:
-`<servidor>\ConanSandbox\Binaries\Win64\`
+**2.** Go to the executable's folder:
+`<server>\ConanSandbox\Binaries\Win64\`
 
-**3.** Renomeie a `winmm.dll` **que já está lá** (a do Windows) para
+**3.** Rename the `winmm.dll` **already there** (Windows' own) to
 `winmm_orig.dll`.
 
-> Se já existir um `winmm_orig.dll` ali, **pare**: você já instalou antes.
-> Renomear de novo faz o carregador apontar para ele mesmo, e o servidor morre
-> em silêncio — sem log, sem erro, só não sobe. Apague a `winmm.dll` nova e
-> recomece deste passo.
+> If a `winmm_orig.dll` already exists, **stop**: you have installed before.
+> Renaming again makes the loader point at itself, and the server dies silently
+> — no log, no error, it just does not come up. Delete the new `winmm.dll` and
+> start again from this step.
 
-**4.** Copie a nossa `winmm.dll` e a pasta `Conan-Api` para essa mesma pasta.
+**4.** Copy our `winmm.dll` and the `Conan-Api` folder into that same folder.
 
-**5.** Suba o servidor e abra `Conan-Api\Logs\ConanLoader.log`.
+**5.** Start the server and open `Conan-Api\Logs\ConanLoader.log`.
 
-Se ele não existir, o carregador não entrou — reveja o passo 3.
+If that file does not exist, the loader never got in — go back to step 3.
 
-### Por que renomear uma DLL do Windows?
+## How loading works, in plain words
 
-Porque o servidor do Conan não tem onde encaixar um plugin. Ele não procura por
-extensões, não lê pasta de módulos, não tem ponto de entrada nenhum.
+When the server starts, three things happen in order — and the order is the
+important part:
 
-O que ele faz, como todo programa Windows, é carregar as bibliotecas do sistema
-ao iniciar — e a `winmm.dll` é uma delas. Nós entramos por ali: a nossa DLL tem
-o nome que ele procura, e, ao ser carregada, ela **repassa todas as chamadas**
-para a original que você renomeou. O jogo não perde nada; nós ganhamos um lugar
-de onde trabalhar.
+**1. We get in, but touch nothing.** `winmm.dll` is loaded along with the
+server, forwards the system calls and steps aside. The game starts up normally.
 
-É por isso que o passo 3 importa tanto. Se a original não estiver como
-`winmm_orig.dll`, as chamadas não têm para onde ir.
+**2. We check the plugins while the world loads.** In those first seconds the
+API opens every DLL in `Plugins/`, reads each one's card, checks dependencies
+and versions. If a plugin is broken, **you find out here** — at startup, not
+half an hour later.
 
----
+**3. We switch the plugins on when the world exists.** And this step waits on
+purpose. A plugin that looks for players before the world has loaded finds a
+half-built world and concludes the wrong thing. It happened here: a plugin came
+up too early and froze the server at 4.3 GB instead of the usual 8.7.
 
-## Como o carregamento funciona, em português
-
-Quando o servidor sobe, três coisas acontecem em ordem — e a ordem é a parte
-importante:
-
-**1. Nós entramos, mas não mexemos em nada.** A `winmm.dll` é carregada junto
-com o servidor, repassa as chamadas do sistema e sai da frente. O jogo começa a
-subir normalmente.
-
-**2. Conferimos os plugins enquanto o mundo carrega.** Nesses segundos iniciais
-a API abre cada DLL da pasta `Plugins/`, lê a ficha de cada uma, confere as
-dependências e as versões. Se um plugin estiver quebrado, **você descobre aqui**
-— no arranque, não meia hora depois.
-
-**3. Ligamos os plugins quando o mundo existe.** E este passo espera de
-propósito. Um plugin que procura jogadores antes de o mundo carregar encontra um
-mundo pela metade e conclui coisa errada. Já aconteceu aqui: um plugin subiu
-cedo demais e travou o servidor em 4,3 GB em vez dos 8,7 normais.
-
-Mas a espera não é um cronômetro — é uma **pergunta ao jogo**. Assim que o
-`GameMode` existe (a mesma condição que faz o servidor imprimir
-`Match State ... InProgress`), os plugins entram. Antes isso era um tempo fixo,
-e o resultado medido aqui foi de **12 minutos** entre o mundo estar pronto e o
-primeiro plugin responder. Hoje são **cinco segundos**.
+But the wait is not a timer — it is a **question to the game**. As soon as the
+`GameMode` exists (the same condition that makes the server print
+`Match State ... InProgress`), the plugins come in. This used to be a fixed
+delay, and the measured result here was **12 minutes** between the world being
+ready and the first plugin answering. Today it is **five seconds**.
 
 ```mermaid
 flowchart TD
-    A[Servidor sobe] --> B[winmm.dll entra e repassa as chamadas]
-    B --> C{A build do jogo<br/>é a esperada?}
-    C -->|não| D[PARA e escreve o motivo.<br/>Nenhum plugin carrega.]
-    C -->|sim| E[Confere as fichas dos plugins<br/>enquanto o mundo carrega]
-    E --> F{Falta alguma<br/>dependência?}
-    F -->|sim| G[RECUSA e diz qual falta]
-    F -->|não| H[Espera o GameMode existir]
-    H --> I[Liga os plugins, um a um,<br/>segurando as falhas]
+    A[Server starts] --> B[winmm.dll gets in and forwards the calls]
+    B --> C{Is the game build<br/>the expected one?}
+    C -->|no| D[STOPS and writes why.<br/>No plugin loads.]
+    C -->|yes| E[Checks the plugin cards<br/>while the world loads]
+    E --> F{Any missing<br/>dependency?}
+    F -->|yes| G[REFUSES and says which]
+    F -->|no| H[Waits for the GameMode to exist]
+    H --> I[Switches plugins on, one by one,<br/>containing failures]
 ```
 
-### O que você deve ver no log
+### What you should see in the log
 
 ```
 == ConanLoader iniciado ==
@@ -196,224 +441,205 @@ mundo montado: achei o GameMode vivo ("ConanGameMode") com 92103 objetos.
 == 1 plugin(s) carregado(s), 0 com falha ==
 ```
 
-Cada plugin aparece com o nome, a versão e o veredito. Um `[x]` no lugar do
-`[ok]` sempre vem com o motivo escrito ao lado.
+Each plugin shows up with its name, version and verdict. An `[x]` instead of
+`[ok]` always comes with the reason written next to it.
 
 ---
 
-## Instalar sem derrubar o servidor
+## Installing without taking the server down
 
-Para adicionar um plugin **novo**, você não precisa mais parar tudo:
-
-```
-1. copie a pasta do plugin para Conan-Api/Plugins/
-2. crie um arquivo vazio chamado CARREGAR-NOVOS, ao lado da pasta Logs/
-```
-
-Em até três segundos o carregador atende, faz as mesmas conferências de sempre e
-liga o plugin. O log diz o resultado:
+To add a **new** plugin you no longer have to stop everything:
 
 ```
-[novos] [ok] LojaDoFulano carregado SEM reiniciar o servidor.
+1. copy the plugin's folder into Conan-Api/Plugins/
+2. create an empty file named CARREGAR-NOVOS, next to the Logs/ folder
 ```
 
-**Trocar a versão de um plugin que já está rodando ainda exige reiniciar.** Isso
-não é preguiça nossa: um plugin já carregado tem ganchos armados dentro do jogo,
-e possivelmente tarefas esperando para rodar. Descarregar o código dele com
-qualquer uma dessas coisas viva faz o servidor pular para um endereço que não
-existe mais — e o problema aparece **depois**, longe da causa, num lugar que não
-aponta para o plugin. Preferimos pedir um restart a entregar isso.
+Within three seconds the loader picks it up, runs the same checks as always and
+switches the plugin on. The log says what happened:
+
+```
+[novos] [ok] SomeonesShop carregado SEM reiniciar o servidor.
+```
+
+**Replacing the version of a plugin that is already running still needs a
+restart.** That is not laziness on our part: a loaded plugin has hooks armed
+inside the game, and possibly tasks waiting to run. Unloading its code with any
+of those alive makes the server jump to an address that no longer exists — and
+the problem shows up **later**, far from the cause, somewhere that does not
+point back at the plugin. We would rather ask for a restart than ship that.
 
 ---
 
-## O dia a dia
+## Day to day
 
-### O que precisa ter dentro da pasta de um plugin
+### What has to be inside a plugin's folder
 
-Só a `.dll`. O resto depende de quem escreveu:
+Only the `.dll`. The rest is up to whoever wrote it:
 
 ```
-Conan-Api/Plugins/LojaDoFulano/
-   LojaDoFulano.dll     <- a única coisa obrigatória
-   PluginInfo.json      <- se existir, o log mostra nome e versão
-   config.json          <- se existir, é do plugin: quem lê é ele, não a API
+Conan-Api/Plugins/SomeonesShop/
+   SomeonesShop.dll     <- the only required item
+   PluginInfo.json      <- if present, the log shows name and version
+   config.json          <- if present, it belongs to the plugin: it reads it, not the API
 ```
 
-Se o autor não pôs um `PluginInfo.json`, o plugin ainda carrega — o log mostra
-`[sem PluginInfo.json]` e usa o nome da pasta. O que você perde é saber a versão
-dele pelo log, e a proteção que recusa o plugin numa API velha ou numa build do
-jogo diferente.
+If the author did not include a `PluginInfo.json`, the plugin still loads — the
+log shows `[sem PluginInfo.json]` and uses the folder name. What you lose is
+knowing its version from the log, and the protection that refuses the plugin on
+an old API or on a different game build.
 
-**O `config.json` é do plugin, não nosso.** A API nunca abre esse arquivo; ela só
-diz ao plugin onde ele fica. Se você precisa mudar alguma coisa nele, a
-referência é a documentação de quem escreveu o plugin.
+**`config.json` belongs to the plugin, not to us.** The API never opens that
+file; it only tells the plugin where it lives. If you need to change something in
+it, the reference is the documentation of whoever wrote the plugin.
 
 ---
 
-| você quer | você faz |
+| you want to | you do |
 |---|---|
-| instalar um plugin | arrasta a pasta para `Conan-Api/Plugins/` |
-| instalar sem parar o servidor | copia a pasta e cria o arquivo `CARREGAR-NOVOS` |
-| desinstalar | apaga a pasta |
-| desligar sem perder a configuração | cria um arquivo vazio `DESLIGADO` dentro da pasta dele |
-| entender o que aconteceu | abre `Conan-Api/Logs/ConanLoader.log` |
+| install a plugin | drag its folder into `Conan-Api/Plugins/` |
+| install without stopping the server | copy the folder and create the `CARREGAR-NOVOS` file |
+| uninstall | delete the folder |
+| switch off without losing the config | create an empty file named `DESLIGADO` inside its folder |
+| understand what happened | open `Conan-Api/Logs/ConanLoader.log` |
 
-Se uma pasta tiver mais de uma `.dll`, o carregador usa a que tem o nome da
-pasta. Se houver duas e nenhuma com o nome certo, ele **recusa e diz qual
-renomear** — escolher "a primeira" mudaria conforme o sistema resolvesse listar,
-e um dia carregaria a errada sem ninguém ver.
+If a folder holds more than one `.dll`, the loader uses the one named after the
+folder. If there are two and none with the right name, it **refuses and says
+which one to rename** — picking "the first" would change with whatever order the
+filesystem felt like listing, and one day it would load the wrong one unnoticed.
 
 ---
 
-![O Exílio](.github/imagens/conan-2.jpg)
+![The Exiled Lands](.github/imagens/conan-2.jpg)
 
-## O Permission — VIP e permissões
+## Permission — VIP and permissions
 
-Vem junto no pacote, e é o plugin que os outros consultam quando precisam saber
-quem pode o quê. Ele guarda tudo num banco dentro da própria pasta:
+It ships in the package, and it is the plugin the others ask when they need to
+know who can do what. It keeps everything in a database inside its own folder:
 
 ```
 Conan-Api/Plugins/Permission/
    ConanPermission.dll
-   config.json          <- nomes dos grupos, e onde fica o banco
-   permission.db        <- nasce sozinho na primeira execução
+   config.json          <- group names, and where the database lives
+   permission.db        <- born on its own at first run
 ```
 
-**Se você não mexer em nada, funciona.** O banco local resolve para a maioria
-dos servidores.
+**If you change nothing, it works.** The local database is enough for most
+servers.
 
-Se você tem **vários servidores** e quer o VIP compartilhado entre eles, é uma
-linha no `config.json` apontando para um MySQL. Os plugins que consultam o
-Permission não percebem diferença — a pergunta é a mesma nos dois casos.
+If you run **several servers** and want VIP shared between them, it is one line
+in `config.json` pointing at a MySQL. Plugins that query Permission notice no
+difference — the question is the same either way.
 
-E se o banco cair, o Permission responde "não sei" em vez de "não tem permissão".
-Quem escreve plugin decide o que fazer com esse "não sei"; quem administra o
-servidor não perde o VIP de ninguém por causa de uma queda de rede.
+And if the database goes down, Permission answers "I do not know" instead of
+"no permission". Plugin authors decide what to do with that "I do not know";
+you, running the server, do not lose anyone's VIP over a network hiccup.
 
 ---
 
-## Quando o Conan atualizar
+### What about the plugins you installed?
 
-A API vai **se recusar a carregar**, de propósito, e vai dizer isso no log.
+Most keep working. A plugin talks to the API through a function table, and that
+table does not change shape when the game updates — what gets rebuilt is the
+API.
 
-Isso não é defeito, é a parte mais importante do projeto. Ela conhece o jogo por
-endereços de memória de uma versão específica; quando a Funcom atualiza, esses
-endereços mudam de lugar. Uma API que continuasse trabalhando estaria lendo
-memória aleatória e devolvendo números que **parecem certos e não são** — VIP
-sumindo, permissão invertida, e ninguém ligando o problema à atualização do jogo.
+The exception is a plugin that baked **game addresses** into its own binary.
+Those start reading the wrong place after a patch, and the worst part is that
+nothing errors out: they run, just with wrong data.
 
-Prefira o servidor que não sobe com plugin ao servidor que sobe mentindo.
-
-### "Mas ela não sabe se reencontrar sozinha?"
-
-Sim, e as duas coisas não se contradizem — são etapas diferentes:
-
-**Achar os endereços novos é automático.** A API não guarda os endereços como
-números: ela os encontra por padrões de bytes no executável do jogo. Quando a
-Funcom recompila, o layout muda mas o código em volta de cada âncora continua
-reconhecível, e uma ferramenta lê os endereços novos direto do `.exe` — sem
-precisar nem subir o servidor.
-
-**Carregar assim mesmo não é.** A conferência de build é deliberada e vem antes
-de tudo. "Encontrei os endereços" não é o mesmo que "conferi que tudo continua
-no lugar": os offsets dos campos dentro das classes também mudam, e esses
-precisam ser recolhidos com o servidor rodando. Enquanto isso não é feito e
-verificado, a API prefere não subir.
-
-**Quanto tempo isso leva, na prática?** Não sabemos. Este projeto é anterior ao
-primeiro patch do Enhanced desde que ele existe — todas as versões publicadas
-até hoje são da mesma build (`24784646`). O mecanismo está testado contra um
-executável modificado por nós de propósito, mas **nunca contra uma atualização
-real da Funcom**. Quando a primeira chegar, esta seção ganha um número medido no
-lugar desta frase.
-
-### E os plugins que você instalou?
-
-A maioria continua valendo. Um plugin conversa com a API por uma tabela de
-funções, e essa tabela não muda de forma quando o jogo atualiza — quem é refeita
-é a API.
-
-A exceção são os plugins que gravaram **endereços do jogo** dentro do próprio
-binário. Esses passam a ler o lugar errado depois de um patch, e o pior é que
-não dá erro: eles funcionam, só que com dado errado.
-
-Por isso o autor pode declarar isso na ficha do plugin dele. Quando declara, e a
-build muda, **o carregador recusa** e escreve o motivo:
+That is why the author can declare it in their plugin's card. When they do, and
+the build changes, **the loader refuses** and writes the reason:
 
 ```
-[x] LojaDoFulano — feito para a build 24383534 do jogo; esta e' a 24784646.
+[x] SomeonesShop — feito para a build 24383534 do jogo; esta e' a 24784646.
     Ele usa offset cru: carregar aqui faria ele ler memoria errada SEM erro
     nenhum. Peca a versao nova ao autor.
 ```
 
-Se um plugin sumir da sua lista depois de uma atualização, procure essa linha
-antes de qualquer outra coisa: ela diz exatamente o que aconteceu e o que pedir
-ao autor.
+If a plugin disappears from your list after an update, look for that line before
+anything else: it says exactly what happened and what to ask the author for.
 
 ---
 
-## Quando alguma coisa não funciona
+## When something does not work
 
-**"Instalei e nenhum plugin funciona"** — abra `Conan-Api\Logs\ConanLoader.log`.
-Se o arquivo nem existe, o carregador não entrou: a `winmm.dll` não está ao lado
-do executável, ou você esqueceu de renomear a original.
+**"I installed it and no plugin works"** — open
+`Conan-Api\Logs\ConanLoader.log`. If the file does not even exist, the loader
+never got in: `winmm.dll` is not next to the executable, or you forgot to rename
+the original.
 
-**"O servidor não sobe e não diz nada"** — quase sempre é `winmm_orig.dll`
-apontando para si mesma, de uma instalação por cima de outra. Veja o passo 3.
+**"The server does not come up and says nothing"** — almost always
+`winmm_orig.dll` pointing at itself, from installing over a previous install.
+See step 3.
 
-**"Um plugin específico não carrega"** — o log diz o motivo, com o nome da pasta.
-Costuma ser DLL faltando, ficha exigindo uma API mais nova, ou um arquivo
-`DESLIGADO` esquecido lá dentro.
+**"One specific plugin will not load"** — the log gives the reason, with the
+folder name. Usually a missing DLL, a card asking for a newer API, or a
+`DESLIGADO` file left behind inside.
 
-**"Instalei com CARREGAR-NOVOS e não aconteceu nada"** — o arquivo é apagado
-assim que é atendido. Se ele continua lá depois de alguns segundos, o carregador
-não está rodando: confira o log do arranque.
-
----
-
-![O Exílio](.github/imagens/conan-1.jpg)
-
-## Escrever seus próprios plugins
-
-É outro repositório: **[Conan-Api-SDK](../../../Conan-Api-SDK)**. Lá estão o
-header, exemplos com código-fonte e o guia de compilação.
-
-São separados de propósito: quem administra um servidor não precisa de
-compilador para nada, e quem escreve plugin não precisa dos binários do
-servidor.
+**"I installed with CARREGAR-NOVOS and nothing happened"** — the file is deleted
+as soon as it is picked up. If it is still there after a few seconds, the loader
+is not running: check the startup log.
 
 ---
 
-## Licença, em três linhas
+![The Exiled Lands](.github/imagens/conan-1.jpg)
 
-**Você pode rodar isto em quantos servidores quiser, inclusive em servidor que
-cobra dos jogadores.** Não há taxa, não há autorização a pedir.
+## Writing your own plugins
 
-**Você pode divulgar e indexar o link deste repositório em qualquer lugar** —
-site, fórum, vídeo, lista de recursos. O link é livre.
+That is another repository: **[Conan-Api-SDK](https://github.com/andrew-mauricio/Conan-Api-SDK)**. The
+header, examples with source code and the build guide live there.
 
-**O que não pode é revender ou re-hospedar a API.** Nada de espelhar o download,
-embutir os arquivos em outro pacote ou incluí-la em qualquer coisa comercial.
-Quem quiser a API pega aqui.
-
-Plugins são outra história e não são nossos: quem escreve um decide a licença
-dele, e pode vendê-lo. O texto completo está no [LICENSE](LICENSE).
+They are separate on purpose: someone running a server needs no compiler at all,
+and someone writing a plugin needs none of the server binaries.
 
 ---
 
-## Créditos e licença
+## Licence, in three lines
 
-*Conan Exiles* é da **Funcom**. As imagens deste repositório são material de
-divulgação oficial, do Steam. Este projeto não tem vínculo com a Funcom nem com
-a Inflexion Games.
+**You may run this on as many servers as you like, including a server that
+charges its players.** No fee, no authorisation to ask for.
 
-Esta API é trabalho independente, feito por engenharia reversa do servidor
-dedicado, sem SDK oficial e sem símbolos de depuração.
+**You may share and index this repository's link anywhere** — site, forum,
+video, resource list. The link is free.
+
+**What you may not do is resell or re-host the API.** No mirroring the download,
+no embedding the files in another package, no including it in anything
+commercial. Whoever wants the API gets it here.
+
+Plugins are a different story and are not ours: whoever writes one chooses its
+licence, and may sell it. The full text is in [LICENSE](LICENSE).
+
+---
+
+## The three repositories
+
+| repository | for whom |
+|---|---|
+| **[Conan-Api](https://github.com/andrew-mauricio/Conan-Api)** | server administrators — the loader and the packaged runtime |
+| **[Conan-Api-SDK](https://github.com/andrew-mauricio/Conan-Api-SDK)** | plugin developers — headers, examples, reflected catalogue |
+| **[Conan-Shop](https://github.com/andrew-mauricio/Conan-Shop)** | a finished shop plugin, and the reference implementation of a real plugin |
+
+---
+
+## Legal notice and attribution
+
+**Conan-Api is an independent, community-developed project. It is not
+affiliated with, endorsed by, sponsored by, or supported by Funcom or Inflexion
+Games.**
+
+*Conan Exiles* and all related marks are the property of Funcom. The promotional
+images in this repository are official Steam material and remain the property of
+their respective owners; they are used here for identification only.
+
+This project was developed by reverse engineering the publicly distributed
+dedicated server binary, without an official SDK and without debug symbols, for
+the purpose of interoperability — enabling server administrators to extend
+servers they operate themselves.
 
 <p align="center">
-  <a href="README.md"><img src=".github/imagens/bandeiras/br.png" alt="Portugues" height="13">&nbsp;<b>Portugu&ecirc;s</b></a>
+  <a href="README.md"><img src=".github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;<b>English</b></a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="doc/README.en.md"><img src=".github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
+  <a href="doc/README.pt.md"><img src=".github/imagens/bandeiras/br.png" alt="Portugu&ecirc;s" height="13">&nbsp;Portugu&ecirc;s</a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="doc/README.es.md"><img src=".github/imagens/bandeiras/es.png" alt="Espanol" height="13">&nbsp;Espa&ntilde;ol</a>
+  <a href="doc/README.es.md"><img src=".github/imagens/bandeiras/es.png" alt="Espa&ntilde;ol" height="13">&nbsp;Espa&ntilde;ol</a>
 </p>

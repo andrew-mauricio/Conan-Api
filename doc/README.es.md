@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <a href="../README.md"><img src="../.github/imagens/bandeiras/br.png" alt="Portugues" height="13">&nbsp;Portugu&ecirc;s</a>
+  <a href="../README.md"><img src="../.github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="README.en.md"><img src="../.github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
+  <a href="README.pt.md"><img src="../.github/imagens/bandeiras/br.png" alt="Portugu&ecirc;s" height="13">&nbsp;Portugu&ecirc;s</a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="README.es.md"><img src="../.github/imagens/bandeiras/es.png" alt="Espanol" height="13">&nbsp;<b>Espa&ntilde;ol</b></a>
+  <a href="README.es.md"><img src="../.github/imagens/bandeiras/es.png" alt="Espa&ntilde;ol" height="13">&nbsp;<b>Espa&ntilde;ol</b></a>
 </p>
 
 # Conan-Api — plugins en tu servidor de Conan Exiles
@@ -419,9 +419,9 @@ Esta API es trabajo independiente, hecho por ingeniería inversa del servidor
 dedicado, sin SDK oficial y sin símbolos de depuración.
 
 <p align="center">
-  <a href="../README.md"><img src="../.github/imagens/bandeiras/br.png" alt="Portugues" height="13">&nbsp;Portugu&ecirc;s</a>
+  <a href="../README.md"><img src="../.github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="README.en.md"><img src="../.github/imagens/bandeiras/us.png" alt="English" height="13">&nbsp;English</a>
+  <a href="README.pt.md"><img src="../.github/imagens/bandeiras/br.png" alt="Portugu&ecirc;s" height="13">&nbsp;Portugu&ecirc;s</a>
   &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-  <a href="README.es.md"><img src="../.github/imagens/bandeiras/es.png" alt="Espanol" height="13">&nbsp;<b>Espa&ntilde;ol</b></a>
+  <a href="README.es.md"><img src="../.github/imagens/bandeiras/es.png" alt="Espa&ntilde;ol" height="13">&nbsp;<b>Espa&ntilde;ol</b></a>
 </p>
