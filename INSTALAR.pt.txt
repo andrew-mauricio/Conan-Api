@@ -1,6 +1,8 @@
 COMO INSTALAR — leia estas 20 linhas antes de copiar qualquer coisa
 ====================================================================
 
+(Tradução. O documento principal é o INSTALL.txt, em inglês.)
+
 Você tem dois itens aqui:
 
     winmm.dll     <- o carregador. SEM ELE NADA FUNCIONA.
@@ -58,4 +60,4 @@ crie um arquivo vazio chamado DESLIGADO dentro da pasta dele.
 Se um plugin nao carregar, Conan-Api\Logs\ConanLoader.log diz o motivo em
 portugues, com o nome da pasta.
 
-A documentação completa está em Conan-Api/Docs/COMECAR.md
+A documentação completa está em Conan-Api/Docs/COMECAR.pt.md
