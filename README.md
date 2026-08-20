@@ -13,8 +13,8 @@
 
 # Conan-Api — native server-side plugin framework for Conan Exiles Enhanced
 
-**Conan-Api is an open-source, server-side plugin framework and C++ SDK for
-privately operated Conan Exiles Enhanced dedicated servers.** It runs inside the
+**Conan-Api is a free, community-developed native server-side plugin framework
+for privately operated Conan Exiles Enhanced dedicated servers.** It runs inside the
 dedicated server process, on hardware the server administrator controls, and
 lets that administrator extend what the *server* does — permissions, VIP tiers,
 economy and shops, teleports, administration tooling, scheduled events.
@@ -294,35 +294,45 @@ data.
 This project draws a deliberate line, and it is worth stating plainly so nobody
 has to guess.
 
-**Open and auditable — everything that affects your server**
+**Open source — the public plugin interface and reference implementations**
 
-| | where |
-|---|---|
-| the plugin ABI and every public header | [SDK](https://github.com/andrew-mauricio/Conan-Api-SDK) `include/Conan/` |
-| the complete list of functions the API exposes to plugins | `ConanPluginApi.h` |
-| how the loader enters the process, step by step | this README |
-| the trust model, and what a plugin can reach | this README |
-| plugin examples, with source | SDK `Exemplos/` |
-| the Permission plugin, with source | SDK `Exemplos/Permission/` |
-| a complete real plugin, with source and tests | [Conan-Shop](https://github.com/andrew-mauricio/Conan-Shop) |
-| SHA-256 of every published binary | each release's notes |
+| | licence | where |
+|---|---|---|
+| the plugin ABI and every public header | MIT | [SDK](https://github.com/andrew-mauricio/Conan-Api-SDK) `include/Conan/` |
+| the complete list of functions the API exposes to plugins | MIT | `ConanPluginApi.h` |
+| plugin examples, with source | MIT | SDK `Exemplos/` |
+| the Permission plugin, with source | MIT | SDK `Exemplos/Permission/` |
+| a complete real plugin, with source and tests | MIT | [Conan-Shop](https://github.com/andrew-mauricio/Conan-Shop) |
 
-If you are deciding whether to run this on your server, or reviewing it for a
-community, everything you need is in that list. You can read the entire surface
-that touches your machine, and verify that the binary you downloaded was built
-from the source that is published.
+**Distributed as a binary — the runtime**
 
-**Not published — the engineering that produced the API**
+The Conan-Api runtime and loader (`winmm.dll` and the packaged runtime) ship
+compiled. Their source is not published, and the licence is proprietary: you may
+run them on as many servers as you like, including servers that charge players,
+but you may not resell, re-host or redistribute them.
+
+Documented in the open, even though the source is not: how the loader enters the
+process, what it does at startup and shutdown, the build check, the trust model,
+and the full list of functions it exposes to plugins — all in this README and in
+the public headers. Every release publishes the SHA-256 of its artifacts, so you
+can verify that the file you downloaded is the file that was published.
+
+> To be exact about what that does and does not give you: the SHA-256 lets you
+> confirm the download was not tampered with in transit or re-hosted. It does
+> **not** let you reproduce the runtime binary from published source, because
+> that source is not published. Where a reproducible build *is* claimed in this
+> project, it is claimed for plugins whose source is public — Conan-Shop, for
+> instance, where you can compile and compare the hash yourself.
+
+**Private — the engineering that produced the API**
 
 The tooling that discovers engine structures, resolves them without debug
 symbols, generates the typed SDK, and adapts the runtime to a new game build is
-maintained privately. That is the work that took the longest and is what
+maintained privately. That is the work that took the longest, and it is what
 distinguishes this project.
 
-Withholding it changes nothing about your ability to audit what runs on your
-server: that tooling does not ship, does not execute on your machine, and is not
-part of any release. What ships is the runtime, the headers, and the plugins —
-all listed above.
+None of it ships, none of it executes on your machine, and none of it is part of
+any release.
 
 ---
 
