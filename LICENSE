@@ -3,6 +3,91 @@ Conan-Api
 Copyright (c) 2026 andrew-mauricio
 
 
+This is the licence for the Conan-Api RUNTIME AND LOADER — the compiled files
+distributed in this repository's releases. It is a proprietary licence, not an
+open source one.
+
+Other parts of this project are MIT, and are not covered by this document:
+the SDK and its public headers, the plugin examples, the Permission plugin, and
+Conan Shop. Each carries its own LICENSE file.
+
+A Portuguese translation follows the English text. Where the two differ, the
+English text governs.
+
+
+WHAT YOU MAY DO
+
+  Write plugins that use this API, and do whatever you like with them,
+  including SELLING them. The plugin is yours; its licence is your choice, and
+  you need no permission, owe no fee, and share nothing.
+
+  Run this API on as many servers as you like, including servers that charge
+  their players.
+
+  Download this API through the official channel: this repository's Releases
+  page.
+
+  Share and index the LINK to this repository anywhere: a website, a forum, a
+  video, a marketplace, a resource list. The link is free.
+
+  Copy, modify and redistribute the EXAMPLES from the SDK as the basis for your
+  own plugins.
+
+  Study the headers.
+
+
+WHAT YOU MAY NOT DO
+
+  Use this API commercially. It may not be sold, licensed, rented, offered as
+  part of a paid service, or included in any commercial package.
+
+  Re-host the files. Do not mirror the download on another site, do not
+  redistribute the .tar.gz, and do not include the binaries or headers in
+  another package, modpack or installer. Whoever wants the API gets it from the
+  official repository: share the link, not the file.
+
+  Use this material to create another plugin API for Conan Exiles, derived or
+  otherwise.
+
+  Redistribute this SDK as your own, or as part of another SDK.
+
+
+WHY THE SPLIT
+
+  The API is the foundation: it is where the mechanics of how things work
+  internally live, and it stays with whoever maintains it. This exists so that
+  there is ONE foundation, with an upgrade path when the game changes, rather
+  than five diverging copies nobody can keep track of.
+
+  What you build on top is a different matter, and it is yours. Selling a plugin
+  is legitimate and expected; nothing here gets in the way of that.
+
+
+NO WARRANTY
+
+  This software is provided "as is", without warranty of any kind. It runs
+  inside a game server's process and may crash it. The authors are not liable
+  for data loss, downtime, or any damage arising from its use.
+
+
+Conan Exiles is a trademark and property of Funcom. This project is independent
+and has no affiliation with, sponsorship from, or approval by Funcom or
+Inflexion Games.
+
+
+================================================================================
+TRADUÇÃO PARA PORTUGUÊS (o texto em inglês prevalece em caso de divergência)
+================================================================================
+
+Esta é a licença do RUNTIME E DO CARREGADOR da Conan-Api — os arquivos
+compilados distribuídos nas releases deste repositório. É uma licença
+proprietária, não uma licença de código aberto.
+
+Outras partes deste projeto são MIT e não são cobertas por este documento:
+o SDK e seus headers públicos, os exemplos de plugin, o plugin Permission e o
+Conan Shop. Cada um traz o próprio arquivo LICENSE.
+
+
 O QUE VOCÊ PODE FAZER
 
   Escrever plugins que usem esta API, e fazer com eles o que quiser —
