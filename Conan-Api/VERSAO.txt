@@ -1,31 +1,32 @@
-Conan-Api 2.9.0 — API de plugins para Conan Exiles Enhanced
-tabela da API: v7   (um plugin exige no maximo esta, via MinApiVersion)
-montado em: 28/08/2026 02:07:34 -03
+Conan-Api 2.10.0 — plugin API for Conan Exiles Enhanced
+API table: v8   (a plugin asks for at most this, via MinApiVersion)
+packaged at: 28/08/2026 08:47:52 -03
 target game: Unreal Engine 5.6.1 (++exiles+release) build 24922388
 
-ATENÇÃO: os offsets desta API são desta build do jogo. Quando o Conan
-atualizar, nenhum plugin carrega (de propósito) e o motivo aparece em
-Conan-Api/Logs/ConanLoader.log. Não é defeito: é a API se recusando a
-ler memória que mudou de lugar.
+WARNING: this API's offsets belong to that game build. When Conan
+updates, no plugin loads — on purpose — and the reason appears in
+Conan-Api/Logs/ConanLoader.log. That is not a defect: it is the API
+refusing to read memory that moved.
 
 ──────────────────────────────────────────────────────────────────
-RECOMPILADO NESTA MONTAGEM — é o que você tem em mãos
+REBUILT IN THIS PACKAGE — this is what you have in your hands
 ──────────────────────────────────────────────────────────────────
-Compilados do zero AGORA. O sha256 abaixo muda a cada montagem
-(timestamps de build entram no binário), mesmo sem UMA linha de código
-mudar. Não são, byte a byte, os que rodaram no servidor quando as
-provas do Docs/ESTADO.md foram colhidas: são um build NOVO da MESMA
-fonte. Quem garante o comportamento é a fonte e os portões, não a
-igualdade de bytes.
+Built from scratch NOW. The sha256 below changes on every package
+(build timestamps go into the binary) even with not ONE line of code
+changed. These are not, byte for byte, the ones running on the server
+when the proofs in Docs/ESTADO.md were taken: they are a NEW build of
+the SAME source. What guarantees behaviour is the source and the
+gates, not byte equality.
 
-  e01853cd5297c5a9  Conan-Api/Plugins/ConanShop/ConanShop.dll
-  eaf4a147ca1d512f  Conan-Api/Plugins/Permission/ConanPermission.dll
-  fa9b7d5f92066029  winmm.dll
+  c71ed63f9edcc14b  Conan-Api/Plugins/ConanShop/ConanShop.dll
+  ba87661b97b9602e  Conan-Api/Plugins/Permission/ConanPermission.dll
+  208b8e553c0bd5a2  winmm.dll
 
 ──────────────────────────────────────────────────────────────────
-VALIDADO RODANDO NO SERVIDOR — os bytes por trás das provas
+VALIDATED RUNNING ON A SERVER — the bytes behind the proofs
 ──────────────────────────────────────────────────────────────────
-implantado em: 2026-08-27 00:24:25
-(o sha aqui DIFERE do de cima de propósito: build diferente, fonte
- igual — é o que prova que a diferença de bytes é só o build.)
-  b5dab6fc8a174267  winmm.dll
+deployed at: 2026-08-27 00:24:25
+(the sha here DIFFERS from the one above on purpose: different
+ build, same source — which is what shows the byte difference is
+ only the build.)
+  84db645f3f39e5ca  winmm.dll
