@@ -1,6 +1,6 @@
 Conan-Api 2.10.0 — plugin API for Conan Exiles Enhanced
 API table: v8   (a plugin asks for at most this, via MinApiVersion)
-packaged at: 28/08/2026 08:47:52 -03
+packaged at: 28/08/2026 17:10:50 -03
 target game: Unreal Engine 5.6.1 (++exiles+release) build 24922388
 
 WARNING: this API's offsets belong to that game build. When Conan
@@ -20,7 +20,7 @@ gates, not byte equality.
 
   c71ed63f9edcc14b  Conan-Api/Plugins/ConanShop/ConanShop.dll
   ba87661b97b9602e  Conan-Api/Plugins/Permission/ConanPermission.dll
-  208b8e553c0bd5a2  winmm.dll
+  a58ccbeb96ae1b03  winmm.dll
 
 ──────────────────────────────────────────────────────────────────
 VALIDATED RUNNING ON A SERVER — the bytes behind the proofs
